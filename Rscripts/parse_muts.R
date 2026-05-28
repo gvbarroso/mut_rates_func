@@ -4,14 +4,13 @@ library(tidyverse)
 
 chunk_size <- 3e6 # must be a multiple of 3
 stopifnot(chunk_size %% 3 == 0)
-skip <- 0
+skip <- 32 # number of header lines
 finished <- FALSE
 
 args <- commandArgs(trailingOnly = TRUE)
 chr <- args[1]
 
 file_name <- paste0("/../../media/gvbarroso/extradrive1/SeplyarskiyEtAl2023/VCFs/", chr, "_rate_v5.2_TFBS_correction_all.vcf.bgz")
-#file_name <- "22_rate_v5.2_TFBS_correction_all.vcf.bgz"
 total_lines <- R.utils::countLines(file_name)
 
 while(!finished) {
