@@ -8,6 +8,8 @@ mut_map <- fread(paste0(chr, "_rate_v5.2_TFBS_correction_all.vcf.bgz"))
 mut_map[, c("ID", "REF", "ALT", "QUAL", "FILTER") := NULL] 
 names(mut_map) <- c("chrom", "pos", "rates")
 
+cat(paste0("Done reading mutation maps for chr", chr, "."))
+
 mut_map[, roulette := as.numeric(sub(".*MR=([0-9.]+).*", "\\1", rates))]
 mut_map[, carlson := as.numeric(sub(".*MC=([0-9.]+).*", "\\1", rates))]
 mut_map[, gnomad := as.numeric(sub(".*MG=([0-9.]+).*", "\\1", rates))]
@@ -29,6 +31,8 @@ mut_map[, carlson := mean(carlson, na.rm=T), by=.(chrom, pos)]
 mut_map[, gnomad := mean(gnomad, na.rm=T), by=.(chrom, pos)]
 
 mut_map <- mut_map[!duplicated(pos)] 
+
+cat("Done averaging mutation rates for sites. Now reading benegas files...")
 
 # original scores downloaded from:
 # https://huggingface.co/datasets/songlab/gpn-msa-hg38-scores/resolve/main/scores.tsv.bgz
