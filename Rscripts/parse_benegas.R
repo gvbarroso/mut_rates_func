@@ -36,7 +36,7 @@ while(!finished) {
   dt[, benegas_score := mean(score), by=.(chrom, pos)]
   dt <- dt[!duplicated(pos)] %>% dplyr::select(., c(chrom, pos, benegas_score)) %>% setDT()
   chrom <- dt$chrom[1]
-  dt[, benegas_score := round(benegas_score, digits=3)]
+  dt[, benegas_score := round(benegas_score, digits=3)] # round to reduce file sizes 
   
   fwrite(dt, paste0("split_scores/scores_chr", chrom, "_", min(dt$pos), "-", max(dt$pos), ".csv.gz"))
   
