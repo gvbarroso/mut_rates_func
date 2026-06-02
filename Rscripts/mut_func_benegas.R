@@ -4,7 +4,7 @@ library(tidyverse)
 args <- commandArgs(trailingOnly = TRUE)
 chr <- args[1]
 
-mut_map <- fread(paste0(chr, "_rate_v5.2_TFBS_correction_all.vcf.bgz"))
+mut_map <- fread(paste0("/../../media/gvbarroso/extradrive1/SeplyarskiyEtAl2023/VCFs/", chr, "_rate_v5.2_TFBS_correction_all.vcf.bgz"))
 mut_map[, c("ID", "REF", "ALT", "QUAL", "FILTER") := NULL] 
 names(mut_map) <- c("chrom", "pos", "rates")
 

@@ -10,8 +10,9 @@ stopifnot(chunk_size %% 3 == 0)
 skip <- 32 # number of header lines in Roulette files
 finished <- FALSE
 
-file_name <- paste0("../Roulette/", chr, "_rate_v5.2_TFBS_correction_all.vcf.bgz")
+file_name <- paste0(chr, "_rate_v5.2_TFBS_correction_all.vcf.bgz")
 total_lines <- R.utils::countLines(file_name)
+cat(paste0("total lines:", total_lines, "\n"))
 
 while(!finished) {
   
