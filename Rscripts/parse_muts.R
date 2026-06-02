@@ -21,7 +21,9 @@ while(!finished) {
     break
   }
    
-  mut_map <- fread(cmd=paste("bgzip -dc", file_name), skip=skip, nrows=chunk_size)
+  mut_map <- fread(cmd=paste("bgzip -dc", file_name),
+		   tmpdir = "/../../media/gvbarroso/extradrive1/tmp", 
+		   skip=skip, nrows=chunk_size)
   print(paste(Sys.time(), "Processing rows", skip, "to", skip + nrow(mut_map)))
   # store prior to collapsing alternative mutations when averaging per position
   og_size <- nrow(mut_map)
