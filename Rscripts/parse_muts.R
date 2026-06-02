@@ -10,8 +10,9 @@ finished <- FALSE
 args <- commandArgs(trailingOnly = TRUE)
 chr <- args[1]
 
-file_name <- paste0("/../../media/gvbarroso/extradrive1/SeplyarskiyEtAl2023/VCFs/", chr, "_rate_v5.2_TFBS_correction_all.vcf.bgz")
+file_name <- paste0(chr, "_rate_v5.2_TFBS_correction_all.vcf.bgz")
 total_lines <- R.utils::countLines(file_name)
+cat(paste0("total lines:", total_lines, "\n"))
 
 while(!finished) {
   
