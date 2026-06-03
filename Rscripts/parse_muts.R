@@ -2,7 +2,7 @@
 library(data.table)
 library(tidyverse)
 
-args <- commandArgs(trailingOnly = TRUE)
+args <- commandArgs(trailingOnly=TRUE)
 chr <- args[1]
 
 chunk_size <- 3e6 # must be a multiple of 3
@@ -24,6 +24,7 @@ while(!finished) {
   mut_map <- fread(cmd=paste("bgzip -dc", file_name),
 		   tmpdir = "/../../media/gvbarroso/extradrive1/tmp", 
 		   skip=skip, nrows=chunk_size)
+  
   print(paste(Sys.time(), "Processing rows", skip, "to", skip + nrow(mut_map)))
   # store prior to collapsing alternative mutations when averaging per position
   og_size <- nrow(mut_map)
