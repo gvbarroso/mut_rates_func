@@ -29,12 +29,19 @@ p <- ggplot(plot_df, aes(x=benegas_bin, y=prop, fill=triplet)) +
         legend.box="horizontal")
 save_plot(paste0("plots/benegas_triplets_chr", chr, ".pdf"), p, base_height=7, base_width=10)
   
-scores_chr[, mean_roulette := mean(roulette, na.rm=T), by=.(benegas_bin)]
-scores_chr[, mean_gnomad := mean(gnomad, na.rm=T), by=.(benegas_bin)]
-scores_chr[, mean_carlson := mean(carlson, na.rm=T), by=.(benegas_bin)]
-scores_chr[, se_roulette := sd(roulette, na.rm=T) / sqrt(.N), by=.(benegas_bin)]
-scores_chr[, se_gnomad := sd(gnomad, na.rm=T) / sqrt(.N), by=.(benegas_bin)]
-scores_chr[, se_carlson := sd(carlson, na.rm=T) / sqrt(.N), by=.(benegas_bin)]
+scores_chr[, mean_bin_roulette := mean(roulette, na.rm=T), by=.(benegas_bin)]
+scores_chr[, mean_bin_gnomad := mean(gnomad, na.rm=T), by=.(benegas_bin)]
+scores_chr[, mean_bin_carlson := mean(carlson, na.rm=T), by=.(benegas_bin)]
+scores_chr[, se_bin_roulette := sd(roulette, na.rm=T) / sqrt(.N), by=.(benegas_bin)]
+scores_chr[, se_bin_gnomad := sd(gnomad, na.rm=T) / sqrt(.N), by=.(benegas_bin)]
+scores_chr[, se_bin_carlson := sd(carlson, na.rm=T) / sqrt(.N), by=.(benegas_bin)]
+
+dat[, mean_roulette_benegas := mean(mean_roulette, na.rm=T), by=.(benegas_bin, triplet)]
+dat[, mean_carlson_benegas := mean(mean_carlson, na.rm=T), by=.(benegas_bin, triplet)]
+dat[, mean_gnomad_benegas := mean(mean_gnomad, na.rm=T), by=.(benegas_bin, triplet)]
+dat[, se_roulette_benegas := sd(mean_roulette, na.rm=T) / sqrt(.N), by=.(benegas_bin, triplet)]
+dat[, se_carlson_benegas := sd(mean_carlson, na.rm=T) / sqrt(.N), by=.(benegas_bin, triplet)]
+dat[, se_gnomad_benegas := sd(mean_gnomad, na.rm=T) / sqrt(.N), by=.(benegas_bin, triplet)]
   
 scores_chr[, num_sites := .N, by=.(benegas_bin, triplet, mean_roulette, mean_carlson, mean_gnomad, se_gnomad, se_carlson, se_roulette)]
   

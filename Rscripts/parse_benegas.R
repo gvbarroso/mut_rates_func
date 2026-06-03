@@ -2,14 +2,17 @@
 library(data.table)
 library(tidyverse)
 
+args <- commandArgs(trailingOnly=TRUE)
+# originally downloaded from (27/05/2026)
+# https://huggingface.co/datasets/songlab/gpn-msa-hg38-scores
+# and split by chromosome with tabix
+file_name <- args[1]
+total_lines <- R.utils::countLines(file_name)
+
 chunk_size <- 3e6 # must be a multiple of 3
 stopifnot(chunk_size %% 3 == 0)
 skip <- 0
 finished <- FALSE
-
-args <- commandArgs(trailingOnly=TRUE)
-file_name <- args[1]
-total_lines <- R.utils::countLines(file_name)
 
 while(!finished) {
   
