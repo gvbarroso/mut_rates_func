@@ -8,7 +8,7 @@ chr <- args[1]
 dat <- fread(paste0("summary_tbls/summaries_chr", chr, ".csv.gz"))
 
 dt_m <- dat %>%
-  pivot_longer(cols=c(mean_roulette, mean_carlson, mean_gnomad, se_roulette, se_carlson, se_gnomad),
+  pivot_longer(cols=c(mean_bin_roulette, mean_bin_carlson, mean_bin_gnomad, se_bin_roulette, se_bin_carlson, se_bin_gnomad),
                names_to=c(".value", "source"), names_pattern="(mean|se)_(.*)")
 
 p1 <- ggplot(dt_m, aes(x=benegas_bin, y=mean, color=source, group=paste0(source, benegas_bin < 15))) +
@@ -26,14 +26,16 @@ p1 <- ggplot(dt_m, aes(x=benegas_bin, y=mean, color=source, group=paste0(source,
 save_plot(paste0("plots/benegas_ratios_chr", chr, ".pdf"), p1, base_height=6, base_width=10)
 
 
+denoms <- dat[benegas_bin == 15, .(den_roulette=mean_bin_triplet_roulette,
+                                   den_carlson=mean_bin_triplet_carlson,
+                                   den_gnomad=mean_bin_triplet_gnomad,
+                                   triplet=triplet)]
 
-denoms <- dat[benegas_bin == 15, .(den_roulette=mean(mean_roulette_benegas, na.rm=T),
-                                   den_carlson=mean(mean_carlson_benegas, na.rm=T),
-                                   den_gnomad=mean(mean_gnomad_benegas, na.rm=T)), by=triplet]
-
-nums <- dat[benegas_bin %in% 1:12, .(num_roulette=mean(mean_roulette_benegas, na.rm=T),
-                                     num_carlson=mean(mean_carlson_benegas, na.rm=T),
-                                     num_gnomad=mean(mean_gnomad_benegas, na.rm=T)), by=.(triplet, benegas_bin)]
+nums <- dat[benegas_bin %in% 1:12, .(num_roulette=mean_bin_triplet_roulette,
+                                     num_carlson=mean_bin_triplet_carlson,
+                                     num_gnomad=mean_bin_triplet_gnomad,
+                                     benegas_bin=benegas_bin,
+                                     triplet=triplet)]
 
 ratios_benegas <- merge(nums, denoms, by="triplet", all.x = TRUE)
 setorder(ratios_benegas, triplet, benegas_bin)
@@ -78,7 +80,17 @@ p4b <- ggplot(filter(ratios_benegas_m, map!="gnomad"),
         legend.title=element_text(size=18),
         legend.box="horizontal")
 
+
+# TODO join B-values and Rec map
+# define 1 kb windows
+# etc
+
+####################
+#
 # mutation rates per trinucleotide
+#
+####################
+
 dat[, `:=`(mean_roulette_triplets=mean(roulette, na.rm=T),
            mean_carlson_triplets=mean(carlson, na.rm=T),
            mean_gnomad_triplets=mean(gnomad, na.rm=T)), by=triplet]
