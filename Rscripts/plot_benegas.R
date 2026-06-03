@@ -1,6 +1,13 @@
 
+library(data.table)
+library(tidyverse)
 
-dt_m <- unique_vals %>%
+args <- commandArgs(trailingOnly=TRUE)
+chr <- args[1]
+
+tbl <- fread(paste0("summary_tbls/summaries_chr", chr, ".csv.gz"))
+
+dt_m <- tbl %>%
   pivot_longer(cols=c(mean_roulette, mean_carlson, mean_gnomad, se_roulette, se_carlson, se_gnomad),
                names_to=c(".value", "source"), names_pattern="(mean|se)_(.*)")
 
@@ -16,4 +23,4 @@ p1 <- ggplot(dt_m, aes(x=benegas_bin, y=mean, color=source, group=paste0(source,
         strip.text=element_text(size=16),
         legend.text=element_text(size=16),
         legend.position="bottom")
-save_plot("~/Desktop/mut_rates/benegas_mut_rates.pdf", p1, base_height=6, base_width=10)
+save_plot(paste0("plots/benegas_ratios_chr", chr, ".pdf"), p1, base_height=6, base_width=10)

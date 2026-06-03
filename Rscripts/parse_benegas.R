@@ -7,7 +7,7 @@ stopifnot(chunk_size %% 3 == 0)
 skip <- 0
 finished <- FALSE
 
-args <- commandArgs(trailingOnly = TRUE)
+args <- commandArgs(trailingOnly=TRUE)
 file_name <- args[1]
 total_lines <- R.utils::countLines(file_name)
 
