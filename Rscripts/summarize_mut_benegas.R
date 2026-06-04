@@ -5,13 +5,22 @@ library(cowplot)
 args <- commandArgs(trailingOnly=TRUE)
 chr <- args[1]
 
-mut_files <- list.files("transfer/", pattern=paste0("mut_map_chr", chr, "*"), full.names=T)
+cat(paste0("Reading mutation maps for chr ", chr, "..."))
+
+mut_files <- list.files("split_muts/", pattern=paste0("^mut_map_chr", chr, "_"), full.names=T)
 mut_map <- data.table::rbindlist(lapply(mut_files, fread))
 
+cat("done.\nReading score map...")
+
 scores_chr <- fread(paste0("score_bins/benegas_bins_chr", chr, ".csv.gz"))
+
+cat("done.\nJoining maps...")
+
 # joins conservation scores, coverage may differ between muts and scores 
 scores_chr <- mut_map[scores_chr, on=.(chrom, pos), nomatch=0] 
   
+cat("done.\nPlotting stacks...")
+
 # stacked plot x=benegas_bin, colors are triplets
 plot_df <- scores_chr[, .N, by=.(triplet, benegas_bin)]
 plot_df[, prop := N / sum(N), by=benegas_bin]
@@ -31,6 +40,8 @@ p <- ggplot(plot_df, aes(x=benegas_bin, y=prop, fill=triplet)) +
         legend.box="horizontal")
 save_plot(paste0("plots/benegas_triplets_chr", chr, ".pdf"), p, base_height=7, base_width=10)
   
+cat("done.\nSummarizing tables...")
+
 # average mutation rates per bin of constraint
 scores_chr[, mean_bin_roulette := mean(roulette, na.rm=T), by=.(benegas_bin)]
 scores_chr[, mean_bin_gnomad := mean(gnomad, na.rm=T), by=.(benegas_bin)]
@@ -56,5 +67,8 @@ scores_chr[, `:=`(num_sites_roulette = sum(!is.na(roulette)),
 unique_vals <- unique(scores_chr, by = c("benegas_bin", "triplet"))
 setorder(unique_vals, benegas_bin, triplet)
   
+cat("done.\nWriting to file...")
+
 fwrite(unique_vals, paste0("summary_tbls/summaries_chr", chr, ".csv.gz"))
 
+cat("Finished!")
