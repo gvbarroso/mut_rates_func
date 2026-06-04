@@ -20,13 +20,14 @@ cat("done.\nComputing quantiles and assigning bins...")
 
 # splitting top 30% of sites into bins, treat the other 70% as neutral
 threshold <- quantile(scores_chr$benegas_score, 0.30)
-scores_chr[, is_benegas := ifelse(benegas_score <= threshold, T, F)] # more negative -> more constrained
+scores_chr[, is_benegas := benegas_score <= threshold]
 
 nbins <- 12 # discretizing distribution of constraint scores
-scores_chr[is_benegas==T, benegas_bin := as.numeric(cut(frank(benegas_score, ties.method="average") / .N,
-                                                 breaks=seq(0, 1, by = 1 / nbins), labels = 1:nbins, include.lowest=T))]
+N_ben <- scores_chr[is_benegas == TRUE, .N]
+scores_chr[is_benegas==T, rank_ben := frank(benegas_score, ties.method = "average")]
+scores_chr[is_benegas==T, benegas_bin := pmin(nbins, ceiling(rank_ben / (N_ben / nbins)))]
 scores_chr[is_benegas==F, benegas_bin := nbins + 3] # neutral bin
-scores_chr[, c("is_benegas", "benegas_score") := NULL] 
+scores_chr[, c("is_benegas", "rank_ben", "benegas_score") := NULL] 
 
 fwrite(scores_chr, paste0("score_bins/benegas_bins_chr", chr, ".csv.gz"))
 
