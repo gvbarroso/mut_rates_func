@@ -13,13 +13,13 @@ chr <- args[1]
 
 cat(paste0("Gathering data from chr ", chr, "..."))
 
-score_files <- list.files("split_scores/", pattern=paste0("scores_chr", chr, "_*"), full.names=T)
+score_files <- list.files("split_scores/", pattern=paste0("^scores_chr", chr, "_"), full.names=T)
 scores_chr <- data.table::rbindlist(lapply(score_files, fread))
 
 cat("done.\nComputing quantiles...")
 
 # splitting top 30% of sites into bins, treat the other 70% as neutral
-threshold <- quantile(scores_chr$benegas_score, 0.30, type=1)
+threshold <- quantile(scores_chr$benegas_score, 0.30)
 scores_chr[, is_benegas := benegas_score <= threshold]
 
 cat("done.\nAssigning bins...")
