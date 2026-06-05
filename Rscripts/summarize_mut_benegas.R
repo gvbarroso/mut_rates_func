@@ -77,7 +77,7 @@ setorder(unique_vals, benegas_bin, triplet)
 cat("done.\nWriting to file...")
 
 fwrite(unique_vals, paste0("summary_tbls/summaries_chr", chr, ".csv.gz"))
-cat("Finished!")
+cat("Finished!\n")
 
 #########################
 #
@@ -110,7 +110,7 @@ wide <- dcast(tbl_means, bin_1kb ~ benegas_bin, value.var = c("mean_roulette", "
 wide[, chrom := chr]
 
 cat("Reading B-map...")
-b_chr <- fread(paste0("transfer/B_map_YRI_chr", chr, "_1kb.csv.gz"))
+b_chr <- fread(paste0("B_1kb_roulette/B_map_YRI_chr", chr, "_1kb.csv.gz"))
 b_chr[, bin_1kb := pos %/% 1e3] # for joining
 
 cat("done.\nJoining and sanitizing...")
