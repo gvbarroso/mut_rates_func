@@ -82,13 +82,12 @@ cat("Finished!")
 #########################
 #
 # Moving on to more detailed analyses
-# These are too expensive to be done genome-wide
 #
 ########################
 
 
 
-# TODO repeat analyses by removing CpG sites
+# TODO repeat after filtering CpG sites
 
 
 
@@ -107,15 +106,14 @@ tbl_means <- scores_chr[, .(
 ), by = .(bin_1kb, benegas_bin)]
 
 # pivoting to wide format
-wide <- dcast(tbl_means, bin_1kb ~ benegas_bin,
-              value.var = c("mean_roulette", "mean_carlson", "mean_gnomad", "n_sites_bin"))
+wide <- dcast(tbl_means, bin_1kb ~ benegas_bin, value.var = c("mean_roulette", "mean_carlson", "mean_gnomad", "n_sites_bin"))
 wide[, chrom := chr]
 
 cat("Reading B-map...")
 b_chr <- fread(paste0("transfer/B_map_YRI_chr", chr, "_1kb.csv.gz"))
 b_chr[, bin_1kb := pos %/% 1e3] # for joining
 
-cat("done.\nJoining...")
+cat("done.\nJoining and sanitizing...")
 scores_chr <- wide[b_chr, on=.(chrom, bin_1kb), nomatch=0] 
 scores_chr[, bin_1kb := NULL]
 
@@ -140,6 +138,8 @@ for(i in seq_along(scores_chr)) {
 #         legend.position="bottom")
 # TODO stack plot
 
+cat("done.\nComputing ratios...")
+
 for(i in 1:12) {
   scores_chr[, paste0("ratio_roulette_bin_", i) := get(paste0("mean_roulette_", i)) / mean_roulette_15]
   scores_chr[, paste0("mean_roulette_", i) := NULL]
@@ -158,6 +158,8 @@ for(i in 1:12) {
 }
 scores_chr[, mean_gnomad_15 := NULL]
 
+cat("done.\nRe-organizing table...")
+
 tb_inv <- pivot_longer(scores_chr, cols=starts_with("ratio_")) %>% setDT()
 tb_inv[, benegas_group := as.integer(sub(".*_", "", name))]
 tb_inv[, variable := sub("_bin.*", "", name)]
@@ -171,9 +173,13 @@ tb_inv[, map := sub(".*_", "", variable)]
 single_benegas <- tb_inv[tb_inv[, do.call(pmax, c(.SD, na.rm = TRUE)), .SDcols = counts] == sum_constrained]
 single_benegas <- single_benegas[sum_constrained > 0 & !is.na(value),]
 
+cat("done.\nSummarizing 1kb maps...")
+
 # weighted average by num_sites of each benegas group
 counts <- paste0("n_sites_bin_", 1:12)
 single_benegas[, weight := as.matrix(.SD)[cbind(seq_len(.N), benegas_group)], .SDcols = counts]
 single_benegas[, chrom := chr]
   
 fwrite(single_benegas, paste0("summary_tbls/exclusive_1kb_chr", chr, ".csv.gz"))
+
+cat("Finished!")
