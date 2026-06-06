@@ -18,13 +18,13 @@ chr <- args[1]
 ########################
 
 cat(paste0("Reading mutation maps for chr ", chr, "..."))
-#mut_files <- list.files("split_muts/", pattern=paste0("^mut_map_chr", chr, "_"), full.names=T)
-mut_files <- list.files("transfer/", pattern=paste0("^mut_map_chr", chr, "_"), full.names=T) # macbook
+mut_files <- list.files("split_muts/", pattern=paste0("^mut_map_chr", chr, "_"), full.names=T)
+#mut_files <- list.files("transfer/", pattern=paste0("^mut_map_chr", chr, "_"), full.names=T) # macbook
 mut_map <- data.table::rbindlist(lapply(mut_files, fread))
 
 cat("done.\nReading score map...")
-#scores_chr <- fread(paste0("score_bins/benegas_bins_chr", chr, ".csv.gz"))
-scores_chr <- fread(paste0("transfer/benegas_bins_chr", chr, ".csv.gz")) # macbook
+scores_chr <- fread(paste0("score_bins/benegas_bins_chr", chr, ".csv.gz"))
+#scores_chr <- fread(paste0("transfer/benegas_bins_chr", chr, ".csv.gz")) # macbook
   
 cat("done.\nJoining maps...")
 scores_chr <- mut_map[scores_chr, on=.(chrom, pos), nomatch=0] 
@@ -182,4 +182,4 @@ single_benegas[, chrom := as.integer(chr)]
   
 fwrite(single_benegas, paste0("summary_tbls/exclusive_1kb_chr", chr, ".csv.gz"))
 
-cat("Finished!")
+cat("Finished!\n")
