@@ -18,13 +18,13 @@ chr <- args[1]
 ########################
 
 cat(paste0("Reading mutation maps for chr ", chr, "..."))
-mut_files <- list.files("split_muts/", pattern=paste0("^mut_map_chr", chr, "_"), full.names=T)
-#mut_files <- list.files("transfer/", pattern=paste0("^mut_map_chr", chr, "_"), full.names=T) # macbook
+#mut_files <- list.files("split_muts/", pattern=paste0("^mut_map_chr", chr, "_"), full.names=T)
+mut_files <- list.files("transfer/", pattern=paste0("^mut_map_chr", chr, "_"), full.names=T) # macbook
 mut_map <- data.table::rbindlist(lapply(mut_files, fread))
 
 cat("done.\nReading score map...")
-scores_chr <- fread(paste0("score_bins/benegas_bins_chr", chr, ".csv.gz"))
-#scores_chr <- fread(paste0("transfer/benegas_bins_chr", chr, ".csv.gz")) # macbook
+#scores_chr <- fread(paste0("score_bins/benegas_bins_chr", chr, ".csv.gz"))
+scores_chr <- fread(paste0("transfer/benegas_bins_chr", chr, ".csv.gz")) # macbook
   
 cat("done.\nJoining maps...")
 scores_chr <- mut_map[scores_chr, on=.(chrom, pos), nomatch=0] 
@@ -107,7 +107,7 @@ tbl_means <- scores_chr[, .(
 
 # pivoting to wide format
 wide <- dcast(tbl_means, bin_1kb ~ benegas_bin, value.var = c("mean_roulette", "mean_carlson", "mean_gnomad", "n_sites_bin"))
-wide[, chrom := chr]
+wide[, chrom := as.integer(chr)]
 
 cat("Reading B-map...")
 b_chr <- fread(paste0("B_1kb_roulette/B_map_YRI_chr", chr, "_1kb.csv.gz"))
@@ -178,7 +178,7 @@ cat("done.\nSummarizing 1kb maps...")
 # weighted average by num_sites of each benegas group
 counts <- paste0("n_sites_bin_", 1:12)
 single_benegas[, weight := as.matrix(.SD)[cbind(seq_len(.N), benegas_group)], .SDcols = counts]
-single_benegas[, chrom := chr]
+single_benegas[, chrom := as.integer(chr)]
   
 fwrite(single_benegas, paste0("summary_tbls/exclusive_1kb_chr", chr, ".csv.gz"))
 
