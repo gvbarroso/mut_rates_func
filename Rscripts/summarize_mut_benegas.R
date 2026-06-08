@@ -18,13 +18,13 @@ chr <- args[1]
 ########################
 
 cat(paste0("Reading mutation maps for chr ", chr, "..."))
-#mut_files <- list.files("split_muts/", pattern=paste0("^mut_map_chr", chr, "_"), full.names=T)
-mut_files <- list.files("transfer/", pattern=paste0("^mut_map_chr", chr, "_"), full.names=T) # macbook
+mut_files <- list.files("split_muts/", pattern=paste0("^mut_map_chr", chr, "_"), full.names=T)
+#mut_files <- list.files("transfer/", pattern=paste0("^mut_map_chr", chr, "_"), full.names=T) # macbook
 mut_map <- data.table::rbindlist(lapply(mut_files, fread))
 
 cat("done.\nReading score map...")
-#scores_chr <- fread(paste0("score_bins/benegas_bins_chr", chr, ".csv.gz"))
-scores_chr <- fread(paste0("transfer/benegas_bins_chr", chr, ".csv.gz")) # macbook
+scores_chr <- fread(paste0("score_bins/benegas_bins_chr", chr, ".csv.gz"))
+#scores_chr <- fread(paste0("transfer/benegas_bins_chr", chr, ".csv.gz")) # macbook
   
 cat("done.\nJoining maps...")
 scores_chr <- mut_map[scores_chr, on=.(chrom, pos), nomatch=0] 
@@ -190,8 +190,9 @@ tbl_chr <- scores_chr[, ..keep]
 cat("Filtering out CpG sites...")
 
 CpGs <- c("ACG", "CCG", "GCG", "TCG", "CGA", "CGC", "CGG", "CGT")
-tbl_chr <- tbl_chr[triplet %in% CpGs,]
+tbl_chr <- tbl_chr[!triplet %in% CpGs,]
 
+tbl_chr[, triplet := NULL]
 tbl_chr[, bin_1kb := pos %/% 1e3] # defining 1 kb bins
 
 # computing summaries across 1 kb bins, stratified by benegas bin
@@ -205,7 +206,7 @@ tbl_means <- tbl_chr[, .(
 wide <- dcast(tbl_means, bin_1kb ~ benegas_bin, value.var = c("mean_roulette", "mean_carlson", "mean_gnomad", "n_sites_bin"))
 wide[, chrom := as.integer(chr)]
 
-cat("done. Reading B-map...")
+cat("done.\nReading B-map...")
 b_chr <- fread(paste0("B_1kb_roulette/B_map_YRI_chr", chr, "_1kb.csv.gz"))
 b_chr[, bin_1kb := pos %/% 1e3] # for joining
 
@@ -218,11 +219,11 @@ for(i in seq_along(tbl_chr)) {
   set(tbl_chr, which(is.nan(tbl_chr[[i]])), i, NA)
 }
 
-#tbl <- dplyr::select(tbl_chr, c("chrom", "pos", "B", starts_with("n_sites"))) %>%
+#tmp <- dplyr::select(tbl_chr, c("chrom", "pos", "B", starts_with("n_sites"))) %>%
 #    pivot_longer(., cols=starts_with("n_sites"), names_to="benegas_bin", values_to="count") %>% setDT()
-#tbl[, benegas_bin := as.integer(sub(".*_", "", benegas_bin))]
+#tmp[, benegas_bin := as.integer(sub(".*_", "", benegas_bin))]
 
-# hist <- tbl %>% ggplot(aes(x=count, fill=as.factor(benegas_bin))) +
+# hist <- tmp %>% ggplot(aes(x=count, fill=as.factor(benegas_bin))) +
 #   geom_histogram(alpha=0.3, binwidth=0.05, color="black", position="identity") +
 #   scale_x_log10() + theme_bw() +
 #   scale_fill_viridis_d(option="C", direction=1) +
