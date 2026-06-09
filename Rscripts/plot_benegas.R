@@ -37,7 +37,7 @@ p0 <- dat[!duplicated(triplet),] %>% pivot_longer(., cols=ends_with("_triplets")
   labs(x=NULL, y=expression(mu), color="Map", title=NULL) +
   theme(axis.title=element_text(size=18),
         axis.text.y=element_text(size=14),
-        axis.text.x=element_text(size=12, angle=90, vjust=1, hjust=0.5),
+        axis.text.x=element_text(size=12, angle=90, vjust=1, hjust=1),
         legend.text=element_text(size=16),
         legend.position="bottom",
         legend.box="horizontal")
@@ -226,12 +226,12 @@ p3 <- ggplot(tbl, aes(x=benegas_group, y=avg_ratio)) +
                linewidth=0.9, lineend="round", inherit.aes=FALSE) +
   geom_point(aes(color=mean_B, group=hasCpG), size=3) +
   geom_errorbar(aes(ymin=avg_ratio - se_ratio, ymax=avg_ratio + se_ratio, color=mean_B), width=0.2, linewidth=0.7) +
-  labs(x="Benegas score 5-percentile group", y=expression(paste(mu, " ratio")),
+  labs(x="Constraint group", y=expression(paste(mu, " ratio")),
        title="Ratios of mutation rates within (isolated) Benegas elements w.r.t. 1 kb background") +
   scale_x_continuous(breaks=1:12) +
   scale_linetype_manual(name=NULL, values=c("FALSE"="solid", "TRUE"="dashed"), labels=c("TRUE"="With CpG", "FALSE"="Without CpG")) +
   scale_y_continuous(breaks=pretty_breaks(), limits=c(min(tbl$avg_ratio) - tbl$se_ratio[which.min(tbl$avg_ratio)], 1)) +
-  scale_color_viridis_c(option="C", direction=1, name="B", breaks=c(round(min(tbl$mean_B) + 0.01, 2), round(max(tbl$mean_B) - 0.01, 2))) +
+  scale_color_viridis_c(option="C", direction=1, name="B-value", breaks=c(round(min(tbl$mean_B) + 0.01, 2), round(max(tbl$mean_B) - 0.01, 2))) +
   guides(linetype = guide_legend(keywidth = unit(1.5, "cm"), keyheight = unit(0.2, "cm"),
          override.aes = list(color = "black", linewidth = 1.2, x = 0, xend = 1, y = 0.5, yend = 0.5))) +
   theme(strip.text=element_text(size=16),
