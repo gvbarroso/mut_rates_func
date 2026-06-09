@@ -50,8 +50,6 @@ save_plot("plots/rates_triplets.pdf", p0, base_height=4, base_width=12)
 #
 ####################
 
-# TODO add phastCons?
-
 dat_withCpG <- dplyr::select(dat, c(mean_bin_triplet_roulette, mean_bin_triplet_carlson, mean_bin_triplet_gnomad, benegas_bin, triplet)) %>%
   unique(., by=c("benegas_bin", "triplet")) %>% setDT()
 
@@ -145,7 +143,8 @@ p2a <- ggplot(filter(ratios_benegas_m, map=="carlson"),
   geom_point(size=2.5) + theme_classic() + 
   geom_hline(yintercept=1, linetype="dashed", color="green4") +
   scale_color_viridis_c(option="C", direction=1, name="Bin", breaks=c(1, 12)) +
-  labs(x=NULL, y=expression(paste(mu, " ratio")), color="Map") +
+  labs(x=NULL, y=expression(paste(mu, " ratio")),
+       title="Ratios of mutation rates within Benegas elements stratified by triplet context") +
   theme(strip.text=element_text(size=18),
         axis.title=element_text(size=18),
         axis.text.y=element_text(size=14),
@@ -163,11 +162,11 @@ p2b <- ggplot(filter(ratios_benegas_m, map=="roulette"),
   geom_point(size=2.5) + theme_classic() + 
   geom_hline(yintercept=1, linetype="dashed", color="green4") +
   scale_color_viridis_c(option="C", direction=1, name="Bin", breaks=c(1, 12)) +
-  labs(x=NULL, y=expression(paste(mu, " ratio")), color="Map", title=NULL) +
+  labs(x=NULL, y=expression(paste(mu, " ratio")), title=NULL) +
   theme(strip.text=element_text(size=18),
         axis.title=element_text(size=18),
         axis.text.y=element_text(size=14),
-        axis.text.x=element_text(size=12, angle=90, hjust=1),
+        axis.text.x=element_text(size=12, angle=90, hjust=1, vjust=0.5),
         legend.text=element_text(size=16),
         legend.position="bottom",
         legend.title=element_text(size=18),
@@ -202,8 +201,7 @@ tbl_mean_ratios <- dat[, .(avg_ratio = sum(value * weight, na.rm=T) / sum(weight
                            se_ratio = sd(value, na.rm=T) / sqrt(sum(!is.na(value)))),
                        by = .(benegas_group, map, hasCpG)]
 
-# joining mean B-value
-b_group <- dat[, .(mean_B = mean(B)), by=.(benegas_group)]
+b_group <- dat[, .(mean_B = mean(B)), by=.(benegas_group)] # joining mean B-value
 tbl <- tbl_mean_ratios[b_group, on=.(benegas_group)]
 
 map_labels <- c("carlson"="Carlson", "gnomad"="gnomAD", "roulette"="Roulette")
@@ -228,7 +226,8 @@ p3 <- ggplot(tbl, aes(x=benegas_group, y=avg_ratio)) +
                linewidth=0.9, lineend="round", inherit.aes=FALSE) +
   geom_point(aes(color=mean_B, group=hasCpG), size=3) +
   geom_errorbar(aes(ymin=avg_ratio - se_ratio, ymax=avg_ratio + se_ratio, color=mean_B), width=0.2, linewidth=0.7) +
-  labs(x="Benegas score 5-percentile group", y=expression(paste(mu, " ratio"))) +
+  labs(x="Benegas score 5-percentile group", y=expression(paste(mu, " ratio")),
+       title="Ratios of mutation rates within (isolated) Benegas elements w.r.t. 1 kb background") +
   scale_x_continuous(breaks=1:12) +
   scale_linetype_manual(name=NULL, values=c("FALSE"="solid", "TRUE"="dashed"), labels=c("TRUE"="With CpG", "FALSE"="Without CpG")) +
   scale_y_continuous(breaks=pretty_breaks(), limits=c(min(tbl$avg_ratio) - tbl$se_ratio[which.min(tbl$avg_ratio)], 1)) +
