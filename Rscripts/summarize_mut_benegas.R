@@ -48,7 +48,7 @@ save_plot(paste0("plots/benegas_triplets_chr", chr, ".pdf"), p, base_height=7, b
   
 cat("done.\nSummarizing tables...")
 
-# average mutation rates per bin of constraint
+# average mutation rates per class of constraint
 scores_chr[, mean_bin_roulette := mean(roulette, na.rm=T), by=.(benegas_bin)]
 scores_chr[, mean_bin_gnomad := mean(gnomad, na.rm=T), by=.(benegas_bin)]
 scores_chr[, mean_bin_carlson := mean(carlson, na.rm=T), by=.(benegas_bin)]
@@ -56,7 +56,7 @@ scores_chr[, se_bin_roulette := sd(roulette, na.rm=T) / sqrt(.N), by=.(benegas_b
 scores_chr[, se_bin_gnomad := sd(gnomad, na.rm=T) / sqrt(.N), by=.(benegas_bin)]
 scores_chr[, se_bin_carlson := sd(carlson, na.rm=T) / sqrt(.N), by=.(benegas_bin)]
 
-# average mutation rates per bin of constraint per triplet context
+# average mutation rates per class of constraint per triplet context
 scores_chr[, mean_bin_triplet_roulette := mean(roulette, na.rm=T), by=.(benegas_bin, triplet)]
 scores_chr[, mean_bin_triplet_carlson := mean(carlson, na.rm=T), by=.(benegas_bin, triplet)]
 scores_chr[, mean_bin_triplet_gnomad := mean(gnomad, na.rm=T), by=.(benegas_bin, triplet)]
@@ -112,6 +112,8 @@ for(i in seq_along(tbl_chr)) {
   set(tbl_chr, which(is.nan(tbl_chr[[i]])), i, NA)
 }
 
+# NOTE since we are joining B-values (see ggplot p3 in plot_benegas.R) 
+# it makes sense to compute rations within each 1 kb bin, then summarize them later
 cat("done.\nComputing ratios...")
 
 for(i in 1:12) {

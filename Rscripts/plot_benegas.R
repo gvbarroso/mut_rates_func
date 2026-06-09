@@ -5,13 +5,15 @@
 #
 ####################
 
+pdf(NULL)
+
 library(data.table)
 library(tidyverse)
 library(scales)
 
 CpGs <- c("ACG", "CCG", "GCG", "TCG", "CGA", "CGC", "CGG", "CGT")
 
-gw_summary_files <- list.files("~/Devel/mut_rates_func/summary_tbls/", pattern=paste0("^summaries_chr"), full.names=T)
+gw_summary_files <- list.files("~/Devel/mut_rates_func/summary_tbls_benegas/", pattern=paste0("^summaries_chr"), full.names=T)
 dat <- data.table::rbindlist(lapply(gw_summary_files, fread))
 dat <- dat[-which(is.na(dat$benegas_bin)),] # TODO check this quirk in chr 7
 
@@ -54,8 +56,8 @@ dat_withCpG <- dplyr::select(dat, c(mean_bin_triplet_roulette, mean_bin_triplet_
   unique(., by=c("benegas_bin", "triplet")) %>% setDT()
 
 dat_withCpG[, `:=`(mean_roluette_group=mean(mean_bin_triplet_roulette),
-                  mean_carlson_group=mean(mean_bin_triplet_carlson),
-                  mean_gnomad_group=mean(mean_bin_triplet_gnomad)), by=benegas_bin] 
+                   mean_carlson_group=mean(mean_bin_triplet_carlson),
+                   mean_gnomad_group=mean(mean_bin_triplet_gnomad)), by=benegas_bin] 
 dat_withCpG <- unique(dat_withCpG, by="benegas_bin") %>%
   dplyr::select(., c(benegas_bin, mean_roluette_group, mean_carlson_group, mean_gnomad_group)) %>% setDT()
 
@@ -94,7 +96,7 @@ p1 <- ggplot(m_ratios, aes(x=benegas_bin, y=ratio, color=map, group=paste0(map, 
   scale_x_continuous(breaks=1:nbins) + theme_classic() + 
   scale_color_manual(values=c("cyan3", "brown1"), name=NULL,
                      labels=c("ratio_roulette"="Roulette", "ratio_carlson"="Carlson")) +
-  labs(x="Constraint group", y=expression(paste(mu, " ratio")),
+  labs(x="Constraint class", y=expression(paste(mu, " ratio")),
        title="Ratios of mutation rates within Benegas elements w.r.t. genome-wide background") +
   scale_linetype_manual(name=NULL, values=c("FALSE"="solid", "TRUE"="dashed"),
                         labels=c("TRUE"="With CpG", "FALSE"="Without CpG")) +
@@ -105,7 +107,7 @@ p1 <- ggplot(m_ratios, aes(x=benegas_bin, y=ratio, color=map, group=paste0(map, 
         strip.text=element_text(size=16),
         legend.text=element_text(size=16),
         legend.position="bottom")
-save_plot("plots/benegas_ratios.pdf", p1, base_height=5, base_width=10)
+save_plot("plots/benegas_ratios.pdf", p1, base_height=4, base_width=8)
 
 dat[, mean_bin_triplet_gw_roulette := mean(mean_bin_triplet_roulette), by=.(benegas_bin, triplet)]
 dat[, mean_bin_triplet_gw_carlson := mean(mean_bin_triplet_carlson), by=.(benegas_bin, triplet)]
@@ -181,7 +183,7 @@ save_plot("plots/ratios_benegas_triplet_bins.pdf", p2, base_height=8, base_width
 #
 ####################
 
-summary_files_1kb <- list.files("~/Devel/mut_rates_func/summary_tbls/", pattern=paste0("^exclusive_1kb_chr"), full.names=T)
+summary_files_1kb <- list.files("~/Devel/mut_rates_func/summary_tbls_benegas/", pattern=paste0("^exclusive_1kb_chr"), full.names=T)
 withCpG_files <- summary_files_1kb[!grepl("nonCpG", summary_files_1kb)]
 nonCpG_files <- summary_files_1kb[grepl("nonCpG", summary_files_1kb)]
 
@@ -197,12 +199,14 @@ withCpG[, hasCpG := T]
 nonCpG[, hasCpG := F]
 dat <- rbind.data.frame(withCpG, nonCpG)
 
-tbl_mean_ratios <- dat[, .(avg_ratio = sum(value * weight, na.rm=T) / sum(weight, na.rm=T),
-                           se_ratio = sd(value, na.rm=T) / sqrt(sum(!is.na(value)))),
-                       by = .(benegas_group, map, hasCpG)]
+# NOTE use log(ratio)?
+# using median as a summary to mitigate outliers
+tbl_med_ratios <- dat[, .(med_ratio=median(value, na.rm=T), 
+                          se_ratio=sd(value, na.rm=T) / sqrt(sum(!is.na(value)))),
+                      by=.(benegas_group, map, hasCpG)]
 
 b_group <- dat[, .(mean_B = mean(B)), by=.(benegas_group)] # joining mean B-value
-tbl <- tbl_mean_ratios[b_group, on=.(benegas_group)]
+tbl <- tbl_med_ratios[b_group, on=.(benegas_group)]
 
 map_labels <- c("carlson"="Carlson", "gnomad"="gnomAD", "roulette"="Roulette")
 
@@ -211,26 +215,26 @@ seg_df <- tbl %>%
   arrange(map, hasCpG, benegas_group) %>%
   group_by(map, hasCpG) %>%
   mutate(x=benegas_group,
-         y=avg_ratio,
+         y=med_ratio,
          xend=lead(benegas_group),
-         yend=lead(avg_ratio),
+         yend=lead(med_ratio),
          mean_B_mid=(mean_B + lead(mean_B)) / 2) %>%
   filter(!is.na(xend)) %>%
   ungroup()
 
-p3 <- ggplot(tbl, aes(x=benegas_group, y=avg_ratio)) +
+p3 <- ggplot(tbl, aes(x=benegas_group, y=med_ratio)) +
   facet_wrap(~map, labeller=labeller(map=map_labels)) +
   theme_classic() +
   geom_segment(data=seg_df,
                aes(x=x, xend=xend, y=y, yend=yend, color=mean_B_mid, linetype=hasCpG, group=interaction(map, hasCpG)),
                linewidth=0.9, lineend="round", inherit.aes=FALSE) +
   geom_point(aes(color=mean_B, group=hasCpG), size=3) +
-  geom_errorbar(aes(ymin=avg_ratio - se_ratio, ymax=avg_ratio + se_ratio, color=mean_B), width=0.2, linewidth=0.7) +
-  labs(x="Constraint group", y=expression(paste(mu, " ratio")),
+  geom_errorbar(aes(ymin=med_ratio - se_ratio, ymax=med_ratio + se_ratio, color=mean_B), width=0.2, linewidth=0.7) +
+  labs(x="Constraint class", y=expression(paste(mu, " ratio")),
        title="Ratios of mutation rates within (isolated) Benegas elements w.r.t. 1 kb background") +
   scale_x_continuous(breaks=1:12) +
   scale_linetype_manual(name=NULL, values=c("FALSE"="solid", "TRUE"="dashed"), labels=c("TRUE"="With CpG", "FALSE"="Without CpG")) +
-  scale_y_continuous(breaks=pretty_breaks(), limits=c(min(tbl$avg_ratio) - tbl$se_ratio[which.min(tbl$avg_ratio)], 1)) +
+  scale_y_continuous(breaks=pretty_breaks(), limits=c(min(tbl$med_ratio) - tbl$se_ratio[which.min(tbl$med_ratio)], 1)) +
   scale_color_viridis_c(option="C", direction=1, name="B-value", breaks=c(round(min(tbl$mean_B) + 0.01, 2), round(max(tbl$mean_B) - 0.01, 2))) +
   guides(linetype = guide_legend(keywidth = unit(1.5, "cm"), keyheight = unit(0.2, "cm"),
          override.aes = list(color = "black", linewidth = 1.2, x = 0, xend = 1, y = 0.5, yend = 0.5))) +
