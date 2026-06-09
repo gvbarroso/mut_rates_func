@@ -19,13 +19,11 @@ chr <- args[1]
 
 cat(paste0("Reading mutation maps for chr ", chr, "..."))
 mut_files <- list.files("split_muts/", pattern=paste0("^mut_map_chr", chr, "_"), full.names=T)
-#mut_files <- list.files("transfer/", pattern=paste0("^mut_map_chr", chr, "_"), full.names=T) # macbook
 mut_map <- data.table::rbindlist(lapply(mut_files, fread))
 
 cat("done.\nReading score map...")
 scores_chr <- fread(paste0("score_bins/benegas_bins_chr", chr, ".csv.gz"))
-#scores_chr <- fread(paste0("transfer/benegas_bins_chr", chr, ".csv.gz")) # macbook
-  
+
 cat("done.\nJoining maps...")
 scores_chr <- mut_map[scores_chr, on=.(chrom, pos), nomatch=0] 
 
@@ -77,7 +75,7 @@ setorder(unique_vals, benegas_bin, triplet)
 cat("done.\nWriting to file...")
 
 fwrite(unique_vals, paste0("summary_tbls/summaries_chr", chr, ".csv.gz"))
-cat("Finished!\n")
+cat("Finished! Moving on to 1 kb windows...\n")
 
 #########################
 #
@@ -114,22 +112,6 @@ tbl_chr[, bin_1kb := NULL]
 for(i in seq_along(tbl_chr)) {
   set(tbl_chr, which(is.nan(tbl_chr[[i]])), i, NA)
 }
-
-#tbl <- dplyr::select(tbl_chr, c("chrom", "pos", "B", starts_with("n_sites"))) %>%
-#    pivot_longer(., cols=starts_with("n_sites"), names_to="benegas_bin", values_to="count") %>% setDT()
-#tbl[, benegas_bin := as.integer(sub(".*_", "", benegas_bin))]
-
-# hist <- tbl %>% ggplot(aes(x=count, fill=as.factor(benegas_bin))) +
-#   geom_histogram(alpha=0.3, binwidth=0.05, color="black", position="identity") +
-#   scale_x_log10() + theme_bw() +
-#   scale_fill_viridis_d(option="C", direction=1) +
-#   labs(x="Total Length (max=1kb)", y="Density", fill=NULL) +
-#   theme(panel.grid.minor=element_blank(),
-#         axis.text=element_text(size=12),
-#         axis.title=element_text(size=16),
-#         axis.text.y=element_text(hjust=1),
-#         legend.position="bottom")
-# TODO stack plot
 
 cat("done.\nComputing ratios...")
 
@@ -175,7 +157,7 @@ single_benegas[, chrom := as.integer(chr)]
   
 fwrite(single_benegas, paste0("summary_tbls/exclusive_1kb_chr", chr, ".csv.gz"))
 
-cat("Finished unfiltered tables!\n")
+cat("done.\nFinished unfiltered tables!\n")
 
 #########################
 #
@@ -218,22 +200,6 @@ tbl_chr[, bin_1kb := NULL]
 for(i in seq_along(tbl_chr)) {
   set(tbl_chr, which(is.nan(tbl_chr[[i]])), i, NA)
 }
-
-#tmp <- dplyr::select(tbl_chr, c("chrom", "pos", "B", starts_with("n_sites"))) %>%
-#    pivot_longer(., cols=starts_with("n_sites"), names_to="benegas_bin", values_to="count") %>% setDT()
-#tmp[, benegas_bin := as.integer(sub(".*_", "", benegas_bin))]
-
-# hist <- tmp %>% ggplot(aes(x=count, fill=as.factor(benegas_bin))) +
-#   geom_histogram(alpha=0.3, binwidth=0.05, color="black", position="identity") +
-#   scale_x_log10() + theme_bw() +
-#   scale_fill_viridis_d(option="C", direction=1) +
-#   labs(x="Total Length (max=1kb)", y="Density", fill=NULL) +
-#   theme(panel.grid.minor=element_blank(),
-#         axis.text=element_text(size=12),
-#         axis.title=element_text(size=16),
-#         axis.text.y=element_text(hjust=1),
-#         legend.position="bottom")
-# TODO stack plot
 
 cat("done.\nComputing ratios...")
 
