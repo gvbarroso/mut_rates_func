@@ -27,25 +27,9 @@ scores_chr <- fread(paste0("score_bins/benegas_bins_chr", chr, ".csv.gz"))
 cat("done.\nJoining maps...")
 scores_chr <- mut_map[scores_chr, on=.(chrom, pos), nomatch=0] 
 
-cat("done.\nPlotting stacks...")
-plot_df <- scores_chr[, .N, by=.(triplet, benegas_bin)]
-plot_df[, prop := N / sum(N), by=benegas_bin]
-plot_df[, benegas_bin := factor(benegas_bin, levels=sort(unique(benegas_bin)))]
+plot_df <- scores_chr[, .N, by=.(chrom, triplet, elem)] # TODO adapt
+fwrite(plot_df, paste0("summary_tbls/stacks_functional_chr", chr, ".csv.gz"))
 
-p <- ggplot(plot_df, aes(x=benegas_bin, y=prop, fill=triplet)) +
-  theme_classic() + geom_col() +
-  scale_fill_viridis_d(option="C", direction=1, guide=guide_legend(nrow=4), name=NULL) +
-  scale_x_discrete(breaks=sort(unique(scores_chr$benegas_bin)), 
-                   labels=c(as.character(sort(unique(scores_chr$benegas_bin))[-length(sort(unique(scores_chr$benegas_bin)))]), 
-                            "Outside")) +
-  labs(x="Benegas score bin", y="Proportion", fill="Trinucleotide") +
-  theme(panel.grid=element_blank(),
-        axis.text=element_text(size=14),
-        axis.title=element_text(size=18),
-        legend.position="bottom",
-        legend.box="horizontal")
-save_plot(paste0("plots/benegas_triplets_chr", chr, ".pdf"), p, base_height=7, base_width=10)
-  
 cat("done.\nSummarizing tables...")
 
 # average mutation rates per class of constraint
@@ -116,6 +100,7 @@ for(i in seq_along(tbl_chr)) {
 # it makes sense to compute rations within each 1 kb bin, then summarize them later
 cat("done.\nComputing ratios...")
 
+# class 15 is putatively neutral
 for(i in 1:12) {
   tbl_chr[, paste0("ratio_roulette_bin_", i) := get(paste0("mean_roulette_", i)) / mean_roulette_15]
   tbl_chr[, paste0("mean_roulette_", i) := NULL]
@@ -136,26 +121,24 @@ tbl_chr[, mean_gnomad_15 := NULL]
 
 cat("done.\nRe-organizing table...")
 
-tb_inv <- pivot_longer(tbl_chr, cols=starts_with("ratio_")) %>% setDT()
-tb_inv[, benegas_group := as.integer(sub(".*_", "", name))]
-tb_inv[, variable := sub("_bin.*", "", name)]
+# "transposing" table (onloy relevant columns)
+tbl_inv <- pivot_longer(tbl_chr, cols=starts_with("ratio_")) %>% setDT()
+tbl_inv[, benegas_group := as.integer(sub(".*_", "", name))]
+tbl_inv[, variable := sub("_bin.*", "", name)]
 
 # getting 1 kb windows where only one class of benegas elements appear
+## replace NA's with 0's
 counts <- paste0("n_sites_bin_", 1:12)
-tb_inv[, (counts) := lapply(.SD, function(x) fifelse(is.na(x), 0L, x)), .SDcols = counts]
-tb_inv[, sum_constrained := rowSums(.SD), .SDcols = counts]
-tb_inv[, map := sub(".*_", "", variable)]
+tbl_inv[, (counts) := lapply(.SD, function(x) fifelse(is.na(x), 0L, x)), .SDcols = counts]
+tbl_inv[, sum_constrained := rowSums(.SD), .SDcols = counts]
+tbl_inv[, map := sub(".*_", "", variable)]
 
-single_benegas <- tb_inv[tb_inv[, do.call(pmax, c(.SD, na.rm=T)), .SDcols = counts] == sum_constrained]
+single_benegas <- tbl_inv[tbl_inv[, do.call(pmax, c(.SD, na.rm=T)), .SDcols = counts] == sum_constrained]
 single_benegas <- single_benegas[sum_constrained > 0 & !is.na(value),]
 
 cat("done.\nSummarizing 1kb maps...")
 
-# weighted average by num_sites of each benegas group
-counts <- paste0("n_sites_bin_", 1:12)
-single_benegas[, weight := as.matrix(.SD)[cbind(seq_len(.N), benegas_group)], .SDcols = counts]
 single_benegas[, chrom := as.integer(chr)]
-  
 fwrite(single_benegas, paste0("summary_tbls/exclusive_1kb_chr", chr, ".csv.gz"))
 
 cat("done.\nFinished unfiltered tables!\n")
@@ -202,8 +185,11 @@ for(i in seq_along(tbl_chr)) {
   set(tbl_chr, which(is.nan(tbl_chr[[i]])), i, NA)
 }
 
+# NOTE since we are joining B-values (see ggplot p3 in plot_phastcons.R) 
+# it makes sense to compute rations within each 1 kb bin, then summarize them later
 cat("done.\nComputing ratios...")
 
+# class 15 is putatively neutral
 for(i in 1:12) {
   tbl_chr[, paste0("ratio_roulette_bin_", i) := get(paste0("mean_roulette_", i)) / mean_roulette_15]
   tbl_chr[, paste0("mean_roulette_", i) := NULL]
@@ -224,26 +210,23 @@ tbl_chr[, mean_gnomad_15 := NULL]
 
 cat("done.\nRe-organizing table...")
 
-tb_inv <- pivot_longer(tbl_chr, cols=starts_with("ratio_")) %>% setDT()
-tb_inv[, benegas_group := as.integer(sub(".*_", "", name))]
-tb_inv[, variable := sub("_bin.*", "", name)]
+# "transposing" table (only relevant columns)
+tbl_inv <- pivot_longer(tbl_chr, cols=starts_with("ratio_")) %>% setDT()
+tbl_inv[, benegas_group := as.integer(sub(".*_", "", name))]
+tbl_inv[, variable := sub("_bin.*", "", name)]
 
 # getting 1 kb windows where only one class of benegas elements appear
 counts <- paste0("n_sites_bin_", 1:12)
-tb_inv[, (counts) := lapply(.SD, function(x) fifelse(is.na(x), 0L, x)), .SDcols = counts]
-tb_inv[, sum_constrained := rowSums(.SD), .SDcols = counts]
-tb_inv[, map := sub(".*_", "", variable)]
+tbl_inv[, (counts) := lapply(.SD, function(x) fifelse(is.na(x), 0L, x)), .SDcols = counts]
+tbl_inv[, sum_constrained := rowSums(.SD), .SDcols = counts]
+tbl_inv[, map := sub(".*_", "", variable)]
 
-single_benegas <- tb_inv[tb_inv[, do.call(pmax, c(.SD, na.rm=T)), .SDcols = counts] == sum_constrained]
+single_benegas <- tbl_inv[tbl_inv[, do.call(pmax, c(.SD, na.rm=T)), .SDcols = counts] == sum_constrained]
 single_benegas <- single_benegas[sum_constrained > 0 & !is.na(value),]
 
 cat("done.\nSummarizing 1kb maps...")
 
-# weighted average by num_sites of each benegas group
-counts <- paste0("n_sites_bin_", 1:12)
-single_benegas[, weight := as.matrix(.SD)[cbind(seq_len(.N), benegas_group)], .SDcols = counts]
 single_benegas[, chrom := as.integer(chr)]
-
 fwrite(single_benegas, paste0("summary_tbls/exclusive_1kb_chr", chr, "_nonCpG.csv.gz"))
 
-cat("done. Finished filtered tables!\n")
+cat("done.\nFinished filtered tables!\n")
