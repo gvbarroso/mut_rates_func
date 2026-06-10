@@ -10,14 +10,16 @@ pdf(NULL)
 library(data.table)
 library(tidyverse)
 library(scales)
+library(cowplot)
+
+setwd("~/Devel/mut_rates_func/functional/")
 
 CpGs <- c("ACG", "CCG", "GCG", "TCG", "CGA", "CGC", "CGG", "CGT")
 
-gw_summary_files <- list.files("~/Devel/mut_rates_func/summary_tbls_functional/", pattern=paste0("^summaries_chr"), full.names=T)
+gw_summary_files <- list.files("~/Devel/mut_rates_func/functional/summary_tbls/", pattern=paste0("^summaries_chr"), full.names=T)
 dat <- data.table::rbindlist(lapply(gw_summary_files, fread))
-dat <- dat[-which(is.na(dat$benegas_bin)),] # TODO check this quirk in chr 7
 
-nbins <- length(unique(na.omit(dat$benegas_bin))) - 1 # last bin -> putatively neutral sites
+nclasses <- length(unique(na.omit(dat$functional_class))) - 1 # last class -> putatively neutral sites
 
 ####################
 #
@@ -45,78 +47,96 @@ p0 <- dat[!duplicated(triplet),] %>% pivot_longer(., cols=ends_with("_triplets")
         legend.box="horizontal")
 save_plot("plots/rates_triplets.pdf", p0, base_height=4, base_width=12)
 
-stacked_files <- list.files("~/Devel/mut_rates_func/summary_tbls_functional/", pattern=paste0("^stacks_functional_chr"), full.names=T)
+stacked_files <- list.files("~/Devel/mut_rates_func/functional/summary_tbls/", pattern=paste0("^stacks_functional_chr"), full.names=T)
 plot_df <- data.table::rbindlist(lapply(stacked_files, fread))
-plot_df[, prop := N / sum(N), by=elem]
-plot_df[, elem := factor(elem, levels=sort(unique(elem)))]
+plot_df[, prop := N / sum(N), by=functional_class]
+plot_df[, functional_class := factor(functional_class, levels=sort(unique(functional_class)))]
 
-p0 <- ggplot(plot_df, aes(x=elem, y=prop, fill=triplet)) +
+p0 <- ggplot(plot_df, aes(x=functional_class, y=prop, fill=triplet)) +
   theme_classic() + geom_col() +
   scale_fill_viridis_d(option="C", direction=1, guide=guide_legend(nrow=4), name=NULL) +
-  scale_x_discrete(breaks=sort(unique(plot_df$elem)), 
-                   labels=c(as.character(sort(unique(plot_df$elem))[-length(sort(unique(plot_df$elem)))]), 
+  scale_x_discrete(breaks=sort(unique(plot_df$functional_class)), 
+                   labels=c(as.character(sort(unique(plot_df$functional_class))[-length(sort(unique(plot_df$functional_class)))]), 
                             "Outside")) +
-  labs(x="Element", y="Proportion", fill="Trinucleotide") +
-  theme(panel.grid=element_blank(),
+  labs(x="functional_classent", y="Proportion", fill="Trinucleotide") +
+  theme(panel.grid=functional_classent_blank(),
         axis.text=element_text(size=14),
         axis.title=element_text(size=18),
         legend.position="bottom",
         legend.box="horizontal")
-save_plot(paste0("plots/phastcons_triplets.pdf"), p0, base_height=7, base_width=10)
+save_plot(paste0("plots/functional_triplets.pdf"), p0, base_height=7, base_width=10)
 
 ####################
 #
-# Comparing rates within and without benegas elements
+# Comparing rates within and without benegas functional_classents
 # Here looking at benegas sites vs genome-wide background
 #
 ####################
 
-dat_withCpG <- dplyr::select(dat, c(mean_bin_triplet_roulette, mean_bin_triplet_carlson, mean_bin_triplet_gnomad, benegas_bin, triplet)) %>%
-  unique(., by=c("benegas_bin", "triplet")) %>% setDT()
 
-dat_withCpG[, `:=`(mean_roluette_group=mean(mean_bin_triplet_roulette),
-                   mean_carlson_group=mean(mean_bin_triplet_carlson),
-                   mean_gnomad_group=mean(mean_bin_triplet_gnomad)), by=benegas_bin] 
-dat_withCpG <- unique(dat_withCpG, by="benegas_bin") %>%
-  dplyr::select(., c(benegas_bin, mean_roluette_group, mean_carlson_group, mean_gnomad_group)) %>% setDT()
 
-denom_roulette <- dat_withCpG[benegas_bin==15, mean_roluette_group]
-denom_carlson <- dat_withCpG[benegas_bin==15, mean_carlson_group]
 
-dat_withCpG[, ratio_roulette := mean_roluette_group / denom_roulette, by=benegas_bin]
-dat_withCpG[, ratio_carlson := mean_carlson_group / denom_carlson, by=benegas_bin]
+
+# start test
+# TODO compute genome-wide means weighted by num sites in each chr, e.g
+dat[, mean_class_triplet_roulette_gw := sum(mean_class_triplet_roulette * num_sites_roulette, na.rm=T) / sum(num_sites_roulette, na.rm = TRUE), by=.(elem)]
+# TODO analogously for gnomad and carlson
+
+# functional_class is the new term for elem
+x <- filter(dat, elem=="decile_1") # dat in RAM still has old name
+nrow(x) # 64 * 22
+length(unique(x$mean_class_triplet_roulette)) # differs every row
+# end test
+
+
+
+
+dat_withCpG <- dplyr::select(dat, c(mean_class_triplet_roulette_gw, mean_class_triplet_carlson, mean_class_triplet_gnomad, functional_class, triplet)) %>%
+  unique(., by=c("functional_class", "triplet")) %>% setDT()
+
+dat_withCpG[, `:=`(mean_roluette_group=mean(mean_class_triplet_roulette),
+                   mean_carlson_group=mean(mean_class_triplet_carlson),
+                   mean_gnomad_group=mean(mean_class_triplet_gnomad)), by=functional_class] 
+dat_withCpG <- unique(dat_withCpG, by="functional_class") %>%
+  dplyr::select(., c(functional_class, mean_roluette_group, mean_carlson_group, mean_gnomad_group)) %>% setDT()
+
+denom_roulette <- dat_withCpG[functional_class=="neutral", mean_roluette_group]
+denom_carlson <- dat_withCpG[functional_class=="neutral", mean_carlson_group]
+
+dat_withCpG[, ratio_roulette := mean_roluette_group / denom_roulette, by=functional_class]
+dat_withCpG[, ratio_carlson := mean_carlson_group / denom_carlson, by=functional_class]
 dat_withCpG[, CpG := T] 
-dat_withCpG <- dat_withCpG[benegas_bin < 15, .(benegas_bin, ratio_roulette, ratio_carlson, CpG)]
+dat_withCpG <- dat_withCpG[functional_class != "neutral", .(functional_class, ratio_roulette, ratio_carlson, CpG)]
 
 # filtering out CpG sites
 dat_nonCpG <- filter(dat, !triplet %in% CpGs) %>% 
-  dplyr::select(., c(mean_bin_triplet_roulette, mean_bin_triplet_carlson, mean_bin_triplet_gnomad, benegas_bin, triplet)) %>%
-  unique(., by=c("benegas_bin", "triplet")) %>% setDT()
+  dplyr::select(., c(mean_bin_triplet_roulette, mean_bin_triplet_carlson, mean_bin_triplet_gnomad, functional_class, triplet)) %>%
+  unique(., by=c("functional_class", "triplet")) %>% setDT()
 
 dat_nonCpG[, `:=`(mean_roluette_group=mean(mean_bin_triplet_roulette),
                   mean_carlson_group=mean(mean_bin_triplet_carlson),
-                  mean_gnomad_group=mean(mean_bin_triplet_gnomad)), by=benegas_bin] 
-dat_nonCpG <- unique(dat_nonCpG, by="benegas_bin") %>%
-  dplyr::select(., c(benegas_bin, mean_roluette_group, mean_carlson_group, mean_gnomad_group)) %>% setDT()
+                  mean_gnomad_group=mean(mean_bin_triplet_gnomad)), by=functional_class] 
+dat_nonCpG <- unique(dat_nonCpG, by="functional_class") %>%
+  dplyr::select(., c(functional_class, mean_roluette_group, mean_carlson_group, mean_gnomad_group)) %>% setDT()
 
-denom_roulette <- dat_nonCpG[benegas_bin==15, mean_roluette_group]
-denom_carlson <- dat_nonCpG[benegas_bin==15, mean_carlson_group]
+denom_roulette <- dat_nonCpG[functional_class==15, mean_roluette_group]
+denom_carlson <- dat_nonCpG[functional_class==15, mean_carlson_group]
 
-dat_nonCpG[, ratio_roulette := mean_roluette_group / denom_roulette, by=benegas_bin]
-dat_nonCpG[, ratio_carlson := mean_carlson_group / denom_carlson, by=benegas_bin]
+dat_nonCpG[, ratio_roulette := mean_roluette_group / denom_roulette, by=functional_class]
+dat_nonCpG[, ratio_carlson := mean_carlson_group / denom_carlson, by=functional_class]
 dat_nonCpG[, CpG := F] 
-dat_nonCpG <- dat_nonCpG[benegas_bin < 15, .(benegas_bin, ratio_roulette, ratio_carlson, CpG)]
+dat_nonCpG <- dat_nonCpG[functional_class < 15, .(functional_class, ratio_roulette, ratio_carlson, CpG)]
 
 m_ratios <- pivot_longer(rbind.data.frame(dat_withCpG, dat_nonCpG), cols=starts_with("ratio"), values_to="ratio", names_to="map")
 
-p1 <- ggplot(m_ratios, aes(x=benegas_bin, y=ratio, color=map, group=paste0(map, CpG))) +
+p1 <- ggplot(m_ratios, aes(x=functional_class, y=ratio, color=map, group=paste0(map, CpG))) +
   geom_line(aes(linetype=CpG), linewidth=1) + geom_point(size=3) + 
   geom_hline(yintercept=1, linetype="dashed", color="grey") +
-  scale_x_continuous(breaks=1:nbins) + theme_classic() + 
+  scale_x_continuous(breaks=1:nclasses) + theme_classic() + 
   scale_color_manual(values=c("cyan3", "brown1"), name=NULL,
                      labels=c("ratio_roulette"="Roulette", "ratio_carlson"="Carlson")) +
   labs(x="Constraint class", y=expression(paste(mu, " ratio")),
-       title="Ratios of mutation rates within Benegas elements w.r.t. genome-wide background") +
+       title="Ratios of mutation rates within Benegas functional_classents w.r.t. genome-wide background") +
   scale_linetype_manual(name=NULL, values=c("FALSE"="solid", "TRUE"="dashed"),
                         labels=c("TRUE"="With CpG", "FALSE"="Without CpG")) +
   guides(linetype=guide_legend(keywidth=unit(1.5, "cm"), keyheight=unit(0.2, "cm"),
@@ -128,24 +148,24 @@ p1 <- ggplot(m_ratios, aes(x=benegas_bin, y=ratio, color=map, group=paste0(map, 
         legend.position="bottom")
 save_plot("plots/benegas_ratios.pdf", p1, base_height=4, base_width=8)
 
-dat[, mean_bin_triplet_gw_roulette := mean(mean_bin_triplet_roulette), by=.(benegas_bin, triplet)]
-dat[, mean_bin_triplet_gw_carlson := mean(mean_bin_triplet_carlson), by=.(benegas_bin, triplet)]
-dat[, mean_bin_triplet_gw_gnomad := mean(mean_bin_triplet_gnomad), by=.(benegas_bin, triplet)]
+dat[, mean_bin_triplet_gw_roulette := mean(mean_bin_triplet_roulette), by=.(functional_class, triplet)]
+dat[, mean_bin_triplet_gw_carlson := mean(mean_bin_triplet_carlson), by=.(functional_class, triplet)]
+dat[, mean_bin_triplet_gw_gnomad := mean(mean_bin_triplet_gnomad), by=.(functional_class, triplet)]
 
-denoms <- dat[benegas_bin == 15, 
+denoms <- dat[functional_class == 15, 
               .(den_roulette=mean_bin_triplet_gw_roulette,
                 den_carlson=mean_bin_triplet_gw_carlson,
                 den_gnomad=mean_bin_triplet_gw_gnomad,
                 triplet=triplet, chrom=chrom)]
 
-nums <- dat[benegas_bin %in% 1:12, .(num_roulette=mean_bin_triplet_gw_roulette,
+nums <- dat[functional_class %in% 1:12, .(num_roulette=mean_bin_triplet_gw_roulette,
                                      num_carlson=mean_bin_triplet_gw_carlson,
                                      num_gnomad=mean_bin_triplet_gw_gnomad,
-                                     benegas_bin=benegas_bin,
+                                     functional_class=functional_class,
                                      triplet=triplet, chrom=chrom)]
 
 ratios_benegas <- merge(nums, denoms, by=c("triplet", "chrom"), all.x = TRUE)
-setorder(ratios_benegas, chrom, triplet, benegas_bin)
+setorder(ratios_benegas, chrom, triplet, functional_class)
 
 ratios_benegas[, `:=`(ratio_roulette=num_roulette / den_roulette,
                       ratio_carlson=num_carlson / den_carlson,
@@ -157,7 +177,7 @@ ratios_benegas_m <- pivot_longer(ratios_benegas, cols=starts_with("ratio_"), nam
 ratios_benegas_m[, map := factor(sub("^ratio_", "", map), levels = c("roulette", "carlson", "gnomad"))]
 
 p2a <- ggplot(filter(ratios_benegas_m, map=="carlson"),
-              aes(x=triplet, y=ratio, color=benegas_bin)) + 
+              aes(x=triplet, y=ratio, color=functional_class)) + 
   annotate(xmin = which(levels(factor(ratios_benegas_m$triplet)) %in% CpGs) - 0.5,
            xmax = which(levels(factor(ratios_benegas_m$triplet)) %in% CpGs) + 0.5,
            geom="rect", ymin = -Inf, ymax = Inf, fill = "grey85", alpha = 0.6) +
@@ -165,18 +185,18 @@ p2a <- ggplot(filter(ratios_benegas_m, map=="carlson"),
   geom_hline(yintercept=1, linetype="dashed", color="green4") +
   scale_color_viridis_c(option="C", direction=1, name="Bin", breaks=c(1, 12)) +
   labs(x=NULL, y=expression(paste(mu, " ratio")),
-       title="Ratios of mutation rates within Benegas elements stratified by triplet context") +
+       title="Ratios of mutation rates within Benegas functional_classents stratified by triplet context") +
   theme(strip.text=element_text(size=18),
         axis.title=element_text(size=18),
         axis.text.y=element_text(size=14),
-        axis.text.x=element_blank(),
+        axis.text.x=functional_classent_blank(),
         legend.text=element_text(size=16),
         legend.position="none",
         legend.title=element_text(size=18),
         legend.box="horizontal")
 
 p2b <- ggplot(filter(ratios_benegas_m, map=="roulette"),
-              aes(x=triplet, y=ratio, color=benegas_bin)) + 
+              aes(x=triplet, y=ratio, color=functional_class)) + 
   annotate(xmin = which(levels(factor(ratios_benegas_m$triplet)) %in% CpGs) - 0.5,
            xmax = which(levels(factor(ratios_benegas_m$triplet)) %in% CpGs) + 0.5,
            geom="rect", ymin = -Inf, ymax = Inf, fill = "grey85", alpha = 0.6) +
@@ -197,7 +217,7 @@ save_plot("plots/ratios_benegas_triplet_bins.pdf", p2, base_height=8, base_width
 
 ####################
 #
-# Comparing rates within and without benegas elements
+# Comparing rates within and without benegas functional_classents
 # Here looking at benegas sites vs other sites in 1 kb windows
 #
 ####################
@@ -251,7 +271,7 @@ p3 <- ggplot(tbl, aes(x=benegas_group, y=med_ratio)) +
   geom_point(aes(color=mean_B, group=hasCpG), size=3) +
   geom_errorbar(aes(ymin=med_ratio - se_ratio, ymax=med_ratio + se_ratio, color=mean_B), width=0.2, linewidth=0.7) +
   labs(x="Constraint class", y=expression(paste(mu, " ratio")),
-       title="Ratios of mutation rates within (isolated) elements w.r.t. 1 kb background") +
+       title="Ratios of mutation rates within (isolated) functional_classents w.r.t. 1 kb background") +
   scale_x_continuous(breaks=1:12) +
   scale_linetype_manual(name=NULL, values=c("FALSE"="solid", "TRUE"="dashed"), labels=c("TRUE"="With CpG", "FALSE"="Without CpG")) +
   scale_y_continuous(breaks=pretty_breaks(), limits=c(min(tbl$med_ratio) - tbl$se_ratio[which.min(tbl$med_ratio)], 1)) +

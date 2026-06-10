@@ -10,13 +10,16 @@ pdf(NULL)
 library(data.table)
 library(tidyverse)
 library(scales)
+library(cowplot)
+
+setwd("~/Devel/mut_rates_func/phastcons/")
 
 CpGs <- c("ACG", "CCG", "GCG", "TCG", "CGA", "CGC", "CGG", "CGT")
 
-gw_summary_files <- list.files("~/Devel/mut_rates_func/summary_tbls_phastcons/", pattern=paste0("^summaries_chr"), full.names=T)
+gw_summary_files <- list.files("~/Devel/mut_rates_func/phastcons/summary_tbls/", pattern=paste0("^summaries_chr"), full.names=T)
 dat <- data.table::rbindlist(lapply(gw_summary_files, fread))
 
-nbins <- length(unique(dat$phast_class)) - 1 # last class -> putatively neutral sites
+nclasses <- length(unique(dat$phast_class)) - 1 # last class -> putatively neutral sites
 
 ####################
 #
@@ -44,7 +47,7 @@ p0 <- dat[!duplicated(triplet),] %>% pivot_longer(., cols=ends_with("_triplets")
         legend.box="horizontal")
 save_plot("plots/rates_triplets.pdf", p0, base_height=4, base_width=12)
 
-stacked_files <- list.files("~/Devel/mut_rates_func/summary_tbls_phastcons/", pattern=paste0("^stacks_phastcons_chr"), full.names=T)
+stacked_files <- list.files("~/Devel/mut_rates_func/phastcons/summary_tbls/", pattern=paste0("^stacks_phastcons_chr"), full.names=T)
 plot_df <- data.table::rbindlist(lapply(stacked_files, fread))
 plot_df[, prop := N / sum(N), by=phast_class]
 plot_df[, phast_class := factor(phast_class, levels=sort(unique(phast_class)))]
@@ -111,7 +114,7 @@ m_ratios <- pivot_longer(rbind.data.frame(dat_withCpG, dat_nonCpG), cols=starts_
 p1 <- ggplot(m_ratios, aes(x=phast_class, y=ratio, color=map, group=paste0(map, CpG))) +
   geom_line(aes(linetype=CpG), linewidth=1) + geom_point(size=3) + 
   geom_hline(yintercept=1, linetype="dashed", color="grey") +
-  scale_x_continuous(breaks=1:nbins) + theme_classic() + 
+  scale_x_continuous(breaks=1:nclasses) + theme_classic() + 
   scale_color_manual(values=c("cyan3", "brown1"), name=NULL,
                      labels=c("ratio_roulette"="Roulette", "ratio_carlson"="Carlson")) +
   labs(x="Constraint class", y=expression(paste(mu, " ratio")),
@@ -201,7 +204,7 @@ save_plot("plots/ratios_phast_triplet_classes.pdf", p2, base_height=8, base_widt
 #
 ####################
 
-summary_files_1kb <- list.files("~/Devel/mut_rates_func/summary_tbls_phastcons/", pattern=paste0("^exclusive_1kb_chr"), full.names=T)
+summary_files_1kb <- list.files("~/Devel/mut_rates_func/phastcons/summary_tbls/", pattern=paste0("^exclusive_1kb_chr"), full.names=T)
 withCpG_files <- summary_files_1kb[!grepl("nonCpG", summary_files_1kb)]
 nonCpG_files <- summary_files_1kb[grepl("nonCpG", summary_files_1kb)]
 

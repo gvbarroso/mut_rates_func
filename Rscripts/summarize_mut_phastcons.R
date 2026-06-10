@@ -6,7 +6,6 @@
 
 library(data.table)
 library(tidyverse)
-library(cowplot)
 
 args <- commandArgs(trailingOnly=T)
 chr <- args[1]
@@ -49,7 +48,7 @@ cat("done.\nJoining maps...")
 phast <- mut_map[phast, on=.(chrom, pos), nomatch=0] 
 
 plot_df <- phast[, .N, by=.(chrom, triplet, phast_class)]
-fwrite(plot_df, paste0("summary_tbls/stacks_functional_chr", chr, ".csv.gz"))
+fwrite(plot_df, paste0("summary_tbls/stacks_phastcons_chr", chr, ".csv.gz"))
 
 cat("done.\nSummarizing tables...")
 
@@ -69,6 +68,7 @@ phast[, se_class_triplet_roulette := sd(roulette, na.rm=T) / sqrt(.N), by=.(phas
 phast[, se_class_triplet_carlson := sd(carlson, na.rm=T) / sqrt(.N), by=.(phast_class, triplet)]
 phast[, se_class_triplet_gnomad := sd(gnomad, na.rm=T) / sqrt(.N), by=.(phast_class, triplet)]
 
+# storing number of sites per class per triplet (used to compute the means for focal chr)
 phast[, `:=`(num_sites_roulette=sum(!is.na(roulette)),
                   num_sites_carlson=sum(!is.na(carlson)),
                   num_sites_gnomad=sum(!is.na(gnomad))),

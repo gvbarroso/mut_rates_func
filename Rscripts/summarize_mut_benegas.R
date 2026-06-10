@@ -6,7 +6,6 @@
 
 library(data.table)
 library(tidyverse)
-library(cowplot)
 
 args <- commandArgs(trailingOnly=T)
 chr <- args[1]
@@ -49,6 +48,7 @@ scores_chr[, se_class_triplet_roulette := sd(roulette, na.rm=T) / sqrt(.N), by=.
 scores_chr[, se_class_triplet_carlson := sd(carlson, na.rm=T) / sqrt(.N), by=.(benegas_class, triplet)]
 scores_chr[, se_class_triplet_gnomad := sd(gnomad, na.rm=T) / sqrt(.N), by=.(benegas_class, triplet)]
   
+# storing number of sites per class per triplet (used to compute the means for focal chr)
 scores_chr[, `:=`(num_sites_roulette=sum(!is.na(roulette)),
                   num_sites_carlson=sum(!is.na(carlson)),
                   num_sites_gnomad=sum(!is.na(gnomad))),
