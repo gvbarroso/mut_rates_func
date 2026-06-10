@@ -22,7 +22,7 @@ mut_files <- list.files("../split_muts/", pattern=paste0("^mut_map_chr", chr, "_
 mut_map <- data.table::rbindlist(lapply(mut_files, fread))
 
 cat("done.\nReading score map...")
-scores_chr <- fread(paste0("score_bins/benegas_bins_chr", chr, ".csv.gz"))
+scores_chr <- fread(paste0("/../../media/gvbarroso/extradrive1/mut_rates_func/benegas/score_bins/benegas_bins_chr", chr, ".csv.gz"))
 setnames(scores_chr, old="benegas_bin", new="benegas_class") # reserving "bin" to '1 kb bins'
 
 cat("done.\nJoining maps...")
