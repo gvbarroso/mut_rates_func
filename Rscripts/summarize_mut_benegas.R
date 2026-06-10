@@ -23,38 +23,39 @@ mut_map <- data.table::rbindlist(lapply(mut_files, fread))
 
 cat("done.\nReading score map...")
 scores_chr <- fread(paste0("score_bins/benegas_bins_chr", chr, ".csv.gz"))
+setnames(scores_chr, old="benegas_bin", new="benegas_class") # reserving "bin" to '1 kb bins'
 
 cat("done.\nJoining maps...")
 scores_chr <- mut_map[scores_chr, on=.(chrom, pos), nomatch=0] 
 
-plot_df <- scores_chr[, .N, by=.(chrom, triplet, elem)] # TODO adapt
-fwrite(plot_df, paste0("summary_tbls/stacks_functional_chr", chr, ".csv.gz"))
+plot_df <- scores_chr[, .N, by=.(chrom, triplet, benegas_class)] 
+fwrite(plot_df, paste0("summary_tbls/stacks_benegas_chr", chr, ".csv.gz"))
 
 cat("done.\nSummarizing tables...")
 
 # average mutation rates per class of constraint
-scores_chr[, mean_bin_roulette := mean(roulette, na.rm=T), by=.(benegas_bin)]
-scores_chr[, mean_bin_gnomad := mean(gnomad, na.rm=T), by=.(benegas_bin)]
-scores_chr[, mean_bin_carlson := mean(carlson, na.rm=T), by=.(benegas_bin)]
-scores_chr[, se_bin_roulette := sd(roulette, na.rm=T) / sqrt(.N), by=.(benegas_bin)]
-scores_chr[, se_bin_gnomad := sd(gnomad, na.rm=T) / sqrt(.N), by=.(benegas_bin)]
-scores_chr[, se_bin_carlson := sd(carlson, na.rm=T) / sqrt(.N), by=.(benegas_bin)]
+scores_chr[, mean_class_roulette := mean(roulette, na.rm=T), by=.(benegas_class)]
+scores_chr[, mean_class_gnomad := mean(gnomad, na.rm=T), by=.(benegas_class)]
+scores_chr[, mean_class_carlson := mean(carlson, na.rm=T), by=.(benegas_class)]
+scores_chr[, se_class_roulette := sd(roulette, na.rm=T) / sqrt(.N), by=.(benegas_class)]
+scores_chr[, se_class_gnomad := sd(gnomad, na.rm=T) / sqrt(.N), by=.(benegas_class)]
+scores_chr[, se_class_carlson := sd(carlson, na.rm=T) / sqrt(.N), by=.(benegas_class)]
 
 # average mutation rates per class of constraint per triplet context
-scores_chr[, mean_bin_triplet_roulette := mean(roulette, na.rm=T), by=.(benegas_bin, triplet)]
-scores_chr[, mean_bin_triplet_carlson := mean(carlson, na.rm=T), by=.(benegas_bin, triplet)]
-scores_chr[, mean_bin_triplet_gnomad := mean(gnomad, na.rm=T), by=.(benegas_bin, triplet)]
-scores_chr[, se_bin_triplet_roulette := sd(roulette, na.rm=T) / sqrt(.N), by=.(benegas_bin, triplet)]
-scores_chr[, se_bin_triplet_carlson := sd(carlson, na.rm=T) / sqrt(.N), by=.(benegas_bin, triplet)]
-scores_chr[, se_bin_triplet_gnomad := sd(gnomad, na.rm=T) / sqrt(.N), by=.(benegas_bin, triplet)]
+scores_chr[, mean_class_triplet_roulette := mean(roulette, na.rm=T), by=.(benegas_class, triplet)]
+scores_chr[, mean_class_triplet_carlson := mean(carlson, na.rm=T), by=.(benegas_class, triplet)]
+scores_chr[, mean_class_triplet_gnomad := mean(gnomad, na.rm=T), by=.(benegas_class, triplet)]
+scores_chr[, se_class_triplet_roulette := sd(roulette, na.rm=T) / sqrt(.N), by=.(benegas_class, triplet)]
+scores_chr[, se_class_triplet_carlson := sd(carlson, na.rm=T) / sqrt(.N), by=.(benegas_class, triplet)]
+scores_chr[, se_class_triplet_gnomad := sd(gnomad, na.rm=T) / sqrt(.N), by=.(benegas_class, triplet)]
   
 scores_chr[, `:=`(num_sites_roulette=sum(!is.na(roulette)),
                   num_sites_carlson=sum(!is.na(carlson)),
                   num_sites_gnomad=sum(!is.na(gnomad))),
-              by=.(benegas_bin, triplet)]
+              by=.(benegas_class, triplet)]
 
-unique_vals <- unique(scores_chr, by=c("benegas_bin", "triplet"))
-setorder(unique_vals, benegas_bin, triplet)
+unique_vals <- unique(scores_chr, by=c("benegas_class", "triplet"))
+setorder(unique_vals, benegas_class, triplet)
 cat("done.\nWriting to file...")
 
 fwrite(unique_vals, paste0("summary_tbls/summaries_chr", chr, ".csv.gz"))
@@ -67,20 +68,20 @@ cat("Finished! Moving on to 1 kb windows...\n")
 ########################
 
 # keep only relevant columns
-keep <- c("chrom", "pos", "roulette",  "carlson", "gnomad", "benegas_bin")
+keep <- c("chrom", "pos", "roulette",  "carlson", "gnomad", "benegas_class")
 tbl_chr <- scores_chr[, ..keep]
 
 tbl_chr[, bin_1kb := pos %/% 1e3] # defining 1 kb bins
 
-# computing summaries across 1 kb bins, stratified by benegas bin
+# computing summaries across 1 kb bins, stratified by benegas class
 tbl_means <- tbl_chr[, .(
   mean_roulette = mean(roulette, na.rm=T),
   mean_carlson = mean(carlson, na.rm=T),
   mean_gnomad = mean(gnomad, na.rm=T),
-  n_sites_bin = .N), by = .(bin_1kb, benegas_bin)]
+  n_sites_class = .N), by = .(bin_1kb, benegas_class)]
 
 # pivoting to wide format
-wide <- dcast(tbl_means, bin_1kb ~ benegas_bin, value.var = c("mean_roulette", "mean_carlson", "mean_gnomad", "n_sites_bin"))
+wide <- dcast(tbl_means, bin_1kb ~ benegas_class, value.var = c("mean_roulette", "mean_carlson", "mean_gnomad", "n_sites_class"))
 wide[, chrom := as.integer(chr)]
 
 cat("Reading B-map...")
@@ -102,19 +103,19 @@ cat("done.\nComputing ratios...")
 
 # class 15 is putatively neutral
 for(i in 1:12) {
-  tbl_chr[, paste0("ratio_roulette_bin_", i) := get(paste0("mean_roulette_", i)) / mean_roulette_15]
+  tbl_chr[, paste0("ratio_roulette_class_", i) := get(paste0("mean_roulette_", i)) / mean_roulette_15]
   tbl_chr[, paste0("mean_roulette_", i) := NULL]
 }
 tbl_chr[, mean_roulette_15 := NULL]
 
 for(i in 1:12) {
-  tbl_chr[, paste0("ratio_carlson_bin_", i) := get(paste0("mean_carlson_", i)) / mean_carlson_15]
+  tbl_chr[, paste0("ratio_carlson_class_", i) := get(paste0("mean_carlson_", i)) / mean_carlson_15]
   tbl_chr[, paste0("mean_carlson_", i) := NULL]
 }
 tbl_chr[, mean_carlson_15 := NULL]
 
 for(i in 1:12) {
-  tbl_chr[, paste0("ratio_gnomad_bin_", i) := get(paste0("mean_gnomad_", i)) / mean_gnomad_15]
+  tbl_chr[, paste0("ratio_gnomad_class_", i) := get(paste0("mean_gnomad_", i)) / mean_gnomad_15]
   tbl_chr[, paste0("mean_gnomad_", i) := NULL]
 }
 tbl_chr[, mean_gnomad_15 := NULL]
@@ -124,11 +125,11 @@ cat("done.\nRe-organizing table...")
 # "transposing" table (onloy relevant columns)
 tbl_inv <- pivot_longer(tbl_chr, cols=starts_with("ratio_")) %>% setDT()
 tbl_inv[, benegas_group := as.integer(sub(".*_", "", name))]
-tbl_inv[, variable := sub("_bin.*", "", name)]
+tbl_inv[, variable := sub("_class.*", "", name)]
 
 # getting 1 kb windows where only one class of benegas elements appear
 ## replace NA's with 0's
-counts <- paste0("n_sites_bin_", 1:12)
+counts <- paste0("n_sites_class_", 1:12)
 tbl_inv[, (counts) := lapply(.SD, function(x) fifelse(is.na(x), 0L, x)), .SDcols = counts]
 tbl_inv[, sum_constrained := rowSums(.SD), .SDcols = counts]
 tbl_inv[, map := sub(".*_", "", variable)]
@@ -150,7 +151,7 @@ cat("done.\nFinished unfiltered tables!\n")
 ########################
 
 # keep only relevant columns
-keep <- c("chrom", "pos", "roulette",  "carlson", "gnomad", "benegas_bin", "triplet")
+keep <- c("chrom", "pos", "roulette",  "carlson", "gnomad", "benegas_class", "triplet")
 tbl_chr <- scores_chr[, ..keep]
 
 cat("Filtering out CpG sites...")
@@ -161,15 +162,15 @@ tbl_chr <- tbl_chr[!triplet %in% CpGs,]
 tbl_chr[, triplet := NULL]
 tbl_chr[, bin_1kb := pos %/% 1e3] # defining 1 kb bins
 
-# computing summaries across 1 kb bins, stratified by benegas bin
+# computing summaries across 1 kb bins, stratified by benegas class
 tbl_means <- tbl_chr[, .(
   mean_roulette = mean(roulette, na.rm=T),
   mean_carlson = mean(carlson, na.rm=T),
   mean_gnomad = mean(gnomad, na.rm=T),
-  n_sites_bin = .N), by = .(bin_1kb, benegas_bin)]
+  n_sites_class = .N), by = .(bin_1kb, benegas_class)]
 
 # pivoting to wide format
-wide <- dcast(tbl_means, bin_1kb ~ benegas_bin, value.var = c("mean_roulette", "mean_carlson", "mean_gnomad", "n_sites_bin"))
+wide <- dcast(tbl_means, bin_1kb ~ benegas_class, value.var = c("mean_roulette", "mean_carlson", "mean_gnomad", "n_sites_class"))
 wide[, chrom := as.integer(chr)]
 
 cat("done.\nReading B-map...")
@@ -191,19 +192,19 @@ cat("done.\nComputing ratios...")
 
 # class 15 is putatively neutral
 for(i in 1:12) {
-  tbl_chr[, paste0("ratio_roulette_bin_", i) := get(paste0("mean_roulette_", i)) / mean_roulette_15]
+  tbl_chr[, paste0("ratio_roulette_class_", i) := get(paste0("mean_roulette_", i)) / mean_roulette_15]
   tbl_chr[, paste0("mean_roulette_", i) := NULL]
 }
 tbl_chr[, mean_roulette_15 := NULL]
 
 for(i in 1:12) {
-  tbl_chr[, paste0("ratio_carlson_bin_", i) := get(paste0("mean_carlson_", i)) / mean_carlson_15]
+  tbl_chr[, paste0("ratio_carlson_class_", i) := get(paste0("mean_carlson_", i)) / mean_carlson_15]
   tbl_chr[, paste0("mean_carlson_", i) := NULL]
 }
 tbl_chr[, mean_carlson_15 := NULL]
 
 for(i in 1:12) {
-  tbl_chr[, paste0("ratio_gnomad_bin_", i) := get(paste0("mean_gnomad_", i)) / mean_gnomad_15]
+  tbl_chr[, paste0("ratio_gnomad_class_", i) := get(paste0("mean_gnomad_", i)) / mean_gnomad_15]
   tbl_chr[, paste0("mean_gnomad_", i) := NULL]
 }
 tbl_chr[, mean_gnomad_15 := NULL]
@@ -213,10 +214,10 @@ cat("done.\nRe-organizing table...")
 # "transposing" table (only relevant columns)
 tbl_inv <- pivot_longer(tbl_chr, cols=starts_with("ratio_")) %>% setDT()
 tbl_inv[, benegas_group := as.integer(sub(".*_", "", name))]
-tbl_inv[, variable := sub("_bin.*", "", name)]
+tbl_inv[, variable := sub("_class.*", "", name)]
 
 # getting 1 kb windows where only one class of benegas elements appear
-counts <- paste0("n_sites_bin_", 1:12)
+counts <- paste0("n_sites_class_", 1:12)
 tbl_inv[, (counts) := lapply(.SD, function(x) fifelse(is.na(x), 0L, x)), .SDcols = counts]
 tbl_inv[, sum_constrained := rowSums(.SD), .SDcols = counts]
 tbl_inv[, map := sub(".*_", "", variable)]

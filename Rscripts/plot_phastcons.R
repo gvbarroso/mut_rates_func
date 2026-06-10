@@ -16,7 +16,7 @@ CpGs <- c("ACG", "CCG", "GCG", "TCG", "CGA", "CGC", "CGG", "CGT")
 gw_summary_files <- list.files("~/Devel/mut_rates_func/summary_tbls_phastcons/", pattern=paste0("^summaries_chr"), full.names=T)
 dat <- data.table::rbindlist(lapply(gw_summary_files, fread))
 
-nbins <- length(unique(dat$phast_bin)) - 1 # last bin -> putatively neutral sites
+nbins <- length(unique(dat$phast_class)) - 1 # last class -> putatively neutral sites
 
 ####################
 #
@@ -44,24 +44,24 @@ p0 <- dat[!duplicated(triplet),] %>% pivot_longer(., cols=ends_with("_triplets")
         legend.box="horizontal")
 save_plot("plots/rates_triplets.pdf", p0, base_height=4, base_width=12)
 
-plot_df <- fread("plot_df_phastcons.csv.gz") # TODO read per chr
-plot_df[, prop := N / sum(N), by=phast_bin]
-plot_df[, phast_bin := factor(phast_bin, levels=sort(unique(phast_bin)))]
+stacked_files <- list.files("~/Devel/mut_rates_func/summary_tbls_phastcons/", pattern=paste0("^stacks_phastcons_chr"), full.names=T)
+plot_df <- data.table::rbindlist(lapply(stacked_files, fread))
+plot_df[, prop := N / sum(N), by=phast_class]
+plot_df[, phast_class := factor(phast_class, levels=sort(unique(phast_class)))]
 
-p0 <- ggplot(plot_df, aes(x=phast_bin, y=prop, fill=triplet)) +
+p0 <- ggplot(plot_df, aes(x=phast_class, y=prop, fill=triplet)) +
   theme_classic() + geom_col() +
   scale_fill_viridis_d(option="C", direction=1, guide=guide_legend(nrow=4), name=NULL) +
-  scale_x_discrete(breaks=sort(unique(phast$phast_bin)), 
-                   labels=c(as.character(sort(unique(phast$phast_bin))[-length(sort(unique(phast$phast_bin)))]), 
+  scale_x_discrete(breaks=sort(unique(plot_df$phast_class)), 
+                   labels=c(as.character(sort(unique(plot_df$phast_class))[-length(sort(unique(plot_df$phast_class)))]), 
                             "Outside")) +
-  labs(x="PhastCons bin", y="Proportion", fill="Trinucleotide") +
+  labs(x="PhastCons class", y="Proportion", fill="Trinucleotide") +
   theme(panel.grid=element_blank(),
         axis.text=element_text(size=14),
         axis.title=element_text(size=18),
         legend.position="bottom",
         legend.box="horizontal")
 save_plot(paste0("plots/phastcons_triplets.pdf"), p0, base_height=7, base_width=10)
-
 
 ####################
 #
@@ -70,45 +70,45 @@ save_plot(paste0("plots/phastcons_triplets.pdf"), p0, base_height=7, base_width=
 #
 ####################
 
-dat_withCpG <- dplyr::select(dat, c(mean_bin_triplet_roulette, mean_bin_triplet_carlson, mean_bin_triplet_gnomad, phast_bin, triplet)) %>%
-  unique(., by=c("phast_bin", "triplet")) %>% setDT()
+dat_withCpG <- dplyr::select(dat, c(mean_class_triplet_roulette, mean_class_triplet_carlson, mean_class_triplet_gnomad, phast_class, triplet)) %>%
+  unique(., by=c("phast_class", "triplet")) %>% setDT()
 
-dat_withCpG[, `:=`(mean_roluette_group=mean(mean_bin_triplet_roulette),
-                   mean_carlson_group=mean(mean_bin_triplet_carlson),
-                   mean_gnomad_group=mean(mean_bin_triplet_gnomad)), by=phast_bin] 
-dat_withCpG <- unique(dat_withCpG, by="phast_bin") %>%
-  dplyr::select(., c(phast_bin, mean_roluette_group, mean_carlson_group, mean_gnomad_group)) %>% setDT()
+dat_withCpG[, `:=`(mean_roluette_group=mean(mean_class_triplet_roulette),
+                   mean_carlson_group=mean(mean_class_triplet_carlson),
+                   mean_gnomad_group=mean(mean_class_triplet_gnomad)), by=phast_class] 
+dat_withCpG <- unique(dat_withCpG, by="phast_class") %>%
+  dplyr::select(., c(phast_class, mean_roluette_group, mean_carlson_group, mean_gnomad_group)) %>% setDT()
 
-denom_roulette <- dat_withCpG[phast_bin==15, mean_roluette_group]
-denom_carlson <- dat_withCpG[phast_bin==15, mean_carlson_group]
+denom_roulette <- dat_withCpG[phast_class==15, mean_roluette_group]
+denom_carlson <- dat_withCpG[phast_class==15, mean_carlson_group]
 
-dat_withCpG[, ratio_roulette := mean_roluette_group / denom_roulette, by=phast_bin]
-dat_withCpG[, ratio_carlson := mean_carlson_group / denom_carlson, by=phast_bin]
+dat_withCpG[, ratio_roulette := mean_roluette_group / denom_roulette, by=phast_class]
+dat_withCpG[, ratio_carlson := mean_carlson_group / denom_carlson, by=phast_class]
 dat_withCpG[, CpG := T] 
-dat_withCpG <- dat_withCpG[phast_bin < 15, .(phast_bin, ratio_roulette, ratio_carlson, CpG)]
+dat_withCpG <- dat_withCpG[phast_class < 15, .(phast_class, ratio_roulette, ratio_carlson, CpG)]
 
 # filtering out CpG sites
 dat_nonCpG <- filter(dat, !triplet %in% CpGs) %>% 
-  dplyr::select(., c(mean_bin_triplet_roulette, mean_bin_triplet_carlson, mean_bin_triplet_gnomad, phast_bin, triplet)) %>%
-  unique(., by=c("phast_bin", "triplet")) %>% setDT()
+  dplyr::select(., c(mean_class_triplet_roulette, mean_class_triplet_carlson, mean_class_triplet_gnomad, phast_class, triplet)) %>%
+  unique(., by=c("phast_class", "triplet")) %>% setDT()
 
-dat_nonCpG[, `:=`(mean_roluette_group=mean(mean_bin_triplet_roulette),
-                  mean_carlson_group=mean(mean_bin_triplet_carlson),
-                  mean_gnomad_group=mean(mean_bin_triplet_gnomad)), by=phast_bin] 
-dat_nonCpG <- unique(dat_nonCpG, by="phast_bin") %>%
-  dplyr::select(., c(phast_bin, mean_roluette_group, mean_carlson_group, mean_gnomad_group)) %>% setDT()
+dat_nonCpG[, `:=`(mean_roluette_group=mean(mean_class_triplet_roulette),
+                  mean_carlson_group=mean(mean_class_triplet_carlson),
+                  mean_gnomad_group=mean(mean_class_triplet_gnomad)), by=phast_class] 
+dat_nonCpG <- unique(dat_nonCpG, by="phast_class") %>%
+  dplyr::select(., c(phast_class, mean_roluette_group, mean_carlson_group, mean_gnomad_group)) %>% setDT()
 
-denom_roulette <- dat_nonCpG[phast_bin==15, mean_roluette_group]
-denom_carlson <- dat_nonCpG[phast_bin==15, mean_carlson_group]
+denom_roulette <- dat_nonCpG[phast_class==15, mean_roluette_group]
+denom_carlson <- dat_nonCpG[phast_class==15, mean_carlson_group]
 
-dat_nonCpG[, ratio_roulette := mean_roluette_group / denom_roulette, by=phast_bin]
-dat_nonCpG[, ratio_carlson := mean_carlson_group / denom_carlson, by=phast_bin]
+dat_nonCpG[, ratio_roulette := mean_roluette_group / denom_roulette, by=phast_class]
+dat_nonCpG[, ratio_carlson := mean_carlson_group / denom_carlson, by=phast_class]
 dat_nonCpG[, CpG := F] 
-dat_nonCpG <- dat_nonCpG[phast_bin < 15, .(phast_bin, ratio_roulette, ratio_carlson, CpG)]
+dat_nonCpG <- dat_nonCpG[phast_class < 15, .(phast_class, ratio_roulette, ratio_carlson, CpG)]
 
 m_ratios <- pivot_longer(rbind.data.frame(dat_withCpG, dat_nonCpG), cols=starts_with("ratio"), values_to="ratio", names_to="map")
 
-p1 <- ggplot(m_ratios, aes(x=phast_bin, y=ratio, color=map, group=paste0(map, CpG))) +
+p1 <- ggplot(m_ratios, aes(x=phast_class, y=ratio, color=map, group=paste0(map, CpG))) +
   geom_line(aes(linetype=CpG), linewidth=1) + geom_point(size=3) + 
   geom_hline(yintercept=1, linetype="dashed", color="grey") +
   scale_x_continuous(breaks=1:nbins) + theme_classic() + 
@@ -127,24 +127,24 @@ p1 <- ggplot(m_ratios, aes(x=phast_bin, y=ratio, color=map, group=paste0(map, Cp
         legend.position="bottom")
 save_plot("plots/phast_ratios.pdf", p1, base_height=4, base_width=8)
 
-dat[, mean_bin_triplet_gw_roulette := mean(mean_bin_triplet_roulette), by=.(phast_bin, triplet)]
-dat[, mean_bin_triplet_gw_carlson := mean(mean_bin_triplet_carlson), by=.(phast_bin, triplet)]
-dat[, mean_bin_triplet_gw_gnomad := mean(mean_bin_triplet_gnomad), by=.(phast_bin, triplet)]
+dat[, mean_class_triplet_gw_roulette := mean(mean_class_triplet_roulette), by=.(phast_class, triplet)]
+dat[, mean_class_triplet_gw_carlson := mean(mean_class_triplet_carlson), by=.(phast_class, triplet)]
+dat[, mean_class_triplet_gw_gnomad := mean(mean_class_triplet_gnomad), by=.(phast_class, triplet)]
 
-denoms <- dat[phast_bin == 15, 
-              .(den_roulette=mean_bin_triplet_gw_roulette,
-                den_carlson=mean_bin_triplet_gw_carlson,
-                den_gnomad=mean_bin_triplet_gw_gnomad,
+denoms <- dat[phast_class == 15, 
+              .(den_roulette=mean_class_triplet_gw_roulette,
+                den_carlson=mean_class_triplet_gw_carlson,
+                den_gnomad=mean_class_triplet_gw_gnomad,
                 triplet=triplet, chrom=chrom)]
 
-nums <- dat[phast_bin %in% 1:12, .(num_roulette=mean_bin_triplet_gw_roulette,
-                                     num_carlson=mean_bin_triplet_gw_carlson,
-                                     num_gnomad=mean_bin_triplet_gw_gnomad,
-                                     phast_bin=phast_bin,
+nums <- dat[phast_class %in% 1:12, .(num_roulette=mean_class_triplet_gw_roulette,
+                                     num_carlson=mean_class_triplet_gw_carlson,
+                                     num_gnomad=mean_class_triplet_gw_gnomad,
+                                     phast_class=phast_class,
                                      triplet=triplet, chrom=chrom)]
 
 ratios_phast <- merge(nums, denoms, by=c("triplet", "chrom"), all.x=TRUE)
-setorder(ratios_phast, chrom, triplet, phast_bin)
+setorder(ratios_phast, chrom, triplet, phast_class)
 
 ratios_phast[, `:=`(ratio_roulette=num_roulette / den_roulette,
                       ratio_carlson=num_carlson / den_carlson,
@@ -156,13 +156,13 @@ ratios_phast_m <- pivot_longer(ratios_phast, cols=starts_with("ratio_"), names_t
 ratios_phast_m[, map := factor(sub("^ratio_", "", map), levels=c("roulette", "carlson", "gnomad"))]
 
 p2a <- ggplot(filter(ratios_phast_m, map=="carlson"),
-              aes(x=triplet, y=ratio, color=phast_bin)) + 
+              aes(x=triplet, y=ratio, color=phast_class)) + 
   annotate(xmin=which(levels(factor(ratios_phast_m$triplet)) %in% CpGs) - 0.5,
            xmax=which(levels(factor(ratios_phast_m$triplet)) %in% CpGs) + 0.5,
            geom="rect", ymin=-Inf, ymax=Inf, fill="grey85", alpha=0.6) +
   geom_point(size=2.5) + theme_classic() + 
   geom_hline(yintercept=1, linetype="dashed", color="green4") +
-  scale_color_viridis_c(option="C", direction=1, name="Bin", breaks=c(1, 12)) +
+  scale_color_viridis_c(option="C", direction=1, name="Class", breaks=c(1, 12)) +
   labs(x=NULL, y=expression(paste(mu, " ratio")),
        title="Ratios of mutation rates within phast elements stratified by triplet context") +
   theme(strip.text=element_text(size=18),
@@ -175,7 +175,7 @@ p2a <- ggplot(filter(ratios_phast_m, map=="carlson"),
         legend.box="horizontal")
 
 p2b <- ggplot(filter(ratios_phast_m, map=="roulette"),
-              aes(x=triplet, y=ratio, color=phast_bin)) + 
+              aes(x=triplet, y=ratio, color=phast_class)) + 
   annotate(xmin=which(levels(factor(ratios_phast_m$triplet)) %in% CpGs) - 0.5,
            xmax=which(levels(factor(ratios_phast_m$triplet)) %in% CpGs) + 0.5,
            geom="rect", ymin=-Inf, ymax=Inf, fill="grey85", alpha=0.6) +
@@ -192,7 +192,7 @@ p2b <- ggplot(filter(ratios_phast_m, map=="roulette"),
         legend.title=element_text(size=18),
         legend.box="horizontal")
 p2 <- plot_grid(p2a, p2b, ncol=1, rel_heights=c(1, 1.35), labels="AUTO")
-save_plot("plots/ratios_phast_triplet_bins.pdf", p2, base_height=8, base_width=14)
+save_plot("plots/ratios_phast_triplet_classes.pdf", p2, base_height=8, base_width=14)
 
 ####################
 #
