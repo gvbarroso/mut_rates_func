@@ -19,7 +19,7 @@ CpGs <- c("ACG", "CCG", "GCG", "TCG", "CGA", "CGC", "CGG", "CGT")
 gw_summary_files <- list.files("~/Devel/mut_rates_func/functional/summary_tbls/", pattern=paste0("^summaries_chr"), full.names=T)
 dat <- data.table::rbindlist(lapply(gw_summary_files, fread))
 
-nclasses <- length(unique(na.omit(dat$functional_class))) - 1 # last class -> putatively neutral sites
+nclasses <- length(unique(na.omit(dat$functional_class))) - 1 # exclude last class (putatively neutral sites)
 
 ####################
 #
@@ -218,8 +218,8 @@ save_plot("plots/ratios_benegas_triplet_bins.pdf", p2, base_height=8, base_width
 
 ####################
 #
-# Comparing rates within and without benegas functional_classents
-# Here looking at benegas sites vs other sites in 1 kb windows
+# Comparing rates within and without functional functional_classents
+# Here looking at functional sites vs other sites in 1 kb windows
 #
 ####################
 
@@ -227,7 +227,6 @@ summary_files_1kb <- list.files("~/Devel/mut_rates_func/summary_tbls_benegas/", 
 withCpG_files <- summary_files_1kb[!grepl("nonCpG", summary_files_1kb)]
 nonCpG_files <- summary_files_1kb[grepl("nonCpG", summary_files_1kb)]
 
-# NOTE: chr 7 ends up with four extra (trivial) columns; TODO: fix within summarize_mut_benegas.R 
 withCpG <- data.table::rbindlist(lapply(withCpG_files, fread), fill=T, use.names=T)
 nonCpG <- data.table::rbindlist(lapply(nonCpG_files, fread), fill=T, use.names=T)
 
