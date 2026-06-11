@@ -73,60 +73,49 @@ save_plot(paste0("plots/functional_triplets.pdf"), p0, base_height=7, base_width
 #
 ####################
 
+dat_withCpG <- dplyr::select(dat, c(mean_class_triplet_roulette, mean_class_triplet_carlson, mean_class_triplet_gnomad,
+                                    num_sites_roulette, num_sites_carlson, num_sites_gnomad, functional_class, triplet)) %>% setDT()
 
+# computing means across chromosomes, weighted by num sites in each window
+dat_withCpG[, mean_class_triplet_roulette_gw := sum(mean_class_triplet_roulette * num_sites_roulette, na.rm=T) / sum(num_sites_roulette, na.rm = TRUE), by=.(functional_class)]
+dat_withCpG[, mean_class_triplet_carlson_gw := sum(mean_class_triplet_carlson * num_sites_carlson, na.rm=T) / sum(num_sites_carlson, na.rm = TRUE), by=.(functional_class)]
+dat_withCpG[, mean_class_triplet_gnomad_gw := sum(mean_class_triplet_gnomad * num_sites_gnomad, na.rm=T) / sum(num_sites_gnomad, na.rm = TRUE), by=.(functional_class)]
 
+dat_withCpG <- unique(dat_withCpG, by=c("functional_class")) %>% 
+  dplyr::select(., c(functional_class, mean_class_triplet_roulette_gw, mean_class_triplet_carlson_gw, mean_class_triplet_gnomad_gw)) %>% setDT()
 
+denom_roulette <- dat_withCpG[functional_class==15, mean_class_triplet_roulette_gw]
+denom_carlson <- dat_withCpG[functional_class==15, mean_class_triplet_carlson_gw]
+denom_gnomad <- dat_withCpG[functional_class==15, mean_class_triplet_gnomad_gw]
 
-# start test
-# TODO compute means across chromosomes, weighted by num sites
-dat[, mean_class_triplet_roulette_gw := sum(mean_class_triplet_roulette * num_sites_roulette, na.rm=T) / sum(num_sites_roulette, na.rm = TRUE), by=.(elem)]
-dat[, mean_class_triplet_carlson_gw := sum(mean_class_triplet_carlson * num_sites_carlson, na.rm=T) / sum(num_sites_carlson, na.rm = TRUE), by=.(elem)]
-dat[, mean_class_triplet_gnomad_gw := sum(mean_class_triplet_gnomad * num_sites_gnomad, na.rm=T) / sum(num_sites_gnomad, na.rm = TRUE), by=.(elem)]
-
-# functional_class is the new term for elem
-x <- filter(dat, elem=="decile_1") # dat in RAM still has old name
-nrow(x) # 64 * 22
-length(unique(x$mean_class_triplet_roulette)) # differs every row
-# end test
-
-
-
-
-dat_withCpG <- dplyr::select(dat, c(mean_class_triplet_roulette_gw, mean_class_triplet_carlson, mean_class_triplet_gnomad, functional_class, triplet)) %>%
-  unique(., by=c("functional_class", "triplet")) %>% setDT()
-
-dat_withCpG[, `:=`(mean_roluette_group=mean(mean_class_triplet_roulette),
-                   mean_carlson_group=mean(mean_class_triplet_carlson),
-                   mean_gnomad_group=mean(mean_class_triplet_gnomad)), by=functional_class] 
-dat_withCpG <- unique(dat_withCpG, by="functional_class") %>%
-  dplyr::select(., c(functional_class, mean_roluette_group, mean_carlson_group, mean_gnomad_group)) %>% setDT()
-
-denom_roulette <- dat_withCpG[functional_class=="neutral", mean_roluette_group]
-denom_carlson <- dat_withCpG[functional_class=="neutral", mean_carlson_group]
-
-dat_withCpG[, ratio_roulette := mean_roluette_group / denom_roulette, by=functional_class]
-dat_withCpG[, ratio_carlson := mean_carlson_group / denom_carlson, by=functional_class]
+dat_withCpG[, ratio_roulette := mean_class_triplet_roulette_gw / denom_roulette, by=functional_class]
+dat_withCpG[, ratio_carlson := mean_class_triplet_carlson_gw / denom_carlson, by=functional_class]
+dat_withCpG[, ratio_gnomad := mean_class_triplet_gnomad_gw / denom_carlson, by=functional_class]
 dat_withCpG[, CpG := T] 
-dat_withCpG <- dat_withCpG[functional_class != "neutral", .(functional_class, ratio_roulette, ratio_carlson, CpG)]
+dat_withCpG <- dat_withCpG[functional_class < 15, .(functional_class, ratio_roulette, ratio_carlson, ratio_gnomad, CpG)]
 
 # filtering out CpG sites
-dat_nonCpG <- filter(dat, !triplet %in% CpGs) %>% 
-  dplyr::select(., c(mean_bin_triplet_roulette, mean_bin_triplet_carlson, mean_bin_triplet_gnomad, functional_class, triplet)) %>%
-  unique(., by=c("functional_class", "triplet")) %>% setDT()
+dat_nonCpG <- dplyr::select(dat, c(mean_class_triplet_roulette, mean_class_triplet_carlson, mean_class_triplet_gnomad,
+                                   num_sites_roulette, num_sites_carlson, num_sites_gnomad, functional_class, triplet)) %>% 
+  filter(., !triplet %in% CpGs) %>% setDT()
 
-dat_nonCpG[, `:=`(mean_roluette_group=mean(mean_bin_triplet_roulette),
-                  mean_carlson_group=mean(mean_bin_triplet_carlson),
-                  mean_gnomad_group=mean(mean_bin_triplet_gnomad)), by=functional_class] 
-dat_nonCpG <- unique(dat_nonCpG, by="functional_class") %>%
-  dplyr::select(., c(functional_class, mean_roluette_group, mean_carlson_group, mean_gnomad_group)) %>% setDT()
+# computing means across chromosomes, weighted by num sites in each window
+dat_nonCpG[, mean_class_triplet_roulette_gw := sum(mean_class_triplet_roulette * num_sites_roulette, na.rm=T) / sum(num_sites_roulette, na.rm = TRUE), by=.(functional_class)]
+dat_nonCpG[, mean_class_triplet_carlson_gw := sum(mean_class_triplet_carlson * num_sites_carlson, na.rm=T) / sum(num_sites_carlson, na.rm = TRUE), by=.(functional_class)]
+dat_nonCpG[, mean_class_triplet_gnomad_gw := sum(mean_class_triplet_gnomad * num_sites_gnomad, na.rm=T) / sum(num_sites_gnomad, na.rm = TRUE), by=.(functional_class)]
 
-denom_roulette <- dat_nonCpG[functional_class==15, mean_roluette_group]
-denom_carlson <- dat_nonCpG[functional_class==15, mean_carlson_group]
+dat_nonCpG <- unique(dat_nonCpG, by=c("functional_class")) %>% 
+  dplyr::select(., c(functional_class, mean_class_triplet_roulette_gw, mean_class_triplet_carlson_gw, mean_class_triplet_gnomad_gw)) %>% setDT()
 
-dat_nonCpG[, ratio_roulette := mean_roluette_group / denom_roulette, by=functional_class]
-dat_nonCpG[, ratio_carlson := mean_carlson_group / denom_carlson, by=functional_class]
+denom_roulette <- dat_nonCpG[functional_class==15, mean_class_triplet_roulette_gw]
+denom_carlson <- dat_nonCpG[functional_class==15, mean_class_triplet_carlson_gw]
+denom_gnomad <- dat_nonCpG[functional_class==15, mean_class_triplet_gnomad_gw]
+
+dat_nonCpG[, ratio_roulette := mean_class_triplet_roulette_gw / denom_roulette, by=functional_class]
+dat_nonCpG[, ratio_carlson := mean_class_triplet_carlson_gw / denom_carlson, by=functional_class]
+dat_nonCpG[, ratio_gnomad := mean_class_triplet_gnomad_gw / denom_carlson, by=functional_class]
 dat_nonCpG[, CpG := F] 
-dat_nonCpG <- dat_nonCpG[functional_class < 15, .(functional_class, ratio_roulette, ratio_carlson, CpG)]
+dat_nonCpG <- dat_nonCpG[functional_class < 15, .(functional_class, ratio_roulette, ratio_carlson, ratio_gnomad, CpG)]
 
 m_ratios <- pivot_longer(rbind.data.frame(dat_withCpG, dat_nonCpG), cols=starts_with("ratio"), values_to="ratio", names_to="map")
 

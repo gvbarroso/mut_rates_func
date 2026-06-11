@@ -54,7 +54,10 @@ functional <- rbind.data.frame(deciles, enhancers, promoters)
 setorder(functional, chrom, pos, functional_class)
 setcolorder(functional, c("chrom", "pos", "functional_class"))
 
-# after all functional functional_classents are loaded, identify putatively neutral sites
+rm(list=c("deciles", "enhancers", "promoters"))
+invisible(gc(full = TRUE))
+
+# after all functional elements are loaded, identify putatively neutral sites
 chr_range <- functional[, .(start=1, end=max(pos)), by=chrom][, .(pos=seq(start, end)), by=chrom]
 functional <- functional[chr_range, on=.(chrom, pos)]
 functional[is.na(functional_class), functional_class := "neutral"]
@@ -62,7 +65,10 @@ functional[is.na(functional_class), functional_class := "neutral"]
 functional[, functional_class := factor(functional_class, levels=c(paste0("decile_", 1:11), "enhancer", "promoter", "neutral"))]
 
 cat("done.\nJoining maps...")
-functional <- mut_map[functional, on=.(chrom, pos), nomatch=0] 
+functional <- mut_map[functional, on=.(chrom, pos), nomatch=0]
+
+rm(list=c("mut_map"))
+invisible(gc(full = TRUE))
 
 plot_df <- functional[, .N, by=.(chrom, triplet, functional_class)]
 fwrite(plot_df, paste0("summary_tbls/stacks_functional_chr", chr, ".csv.gz"))
