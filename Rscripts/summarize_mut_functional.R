@@ -54,13 +54,13 @@ functional <- rbind.data.frame(deciles, enhancers, promoters)
 setorder(functional, chrom, pos, functional_class)
 setcolorder(functional, c("chrom", "pos", "functional_class"))
 
-rm(list=c("deciles", "enhancers", "promoters"))
-invisible(gc(full = TRUE))
-
 # after all functional elements are loaded, identify putatively neutral sites
 chr_range <- functional[, .(start=1, end=max(pos)), by=chrom][, .(pos=seq(start, end)), by=chrom]
 functional <- functional[chr_range, on=.(chrom, pos)]
 functional[is.na(functional_class), functional_class := "neutral"]
+
+rm(list=c("deciles", "enhancers", "promoters", "chr_range"))
+invisible(gc(full = TRUE))
 
 functional[, functional_class := factor(functional_class, levels=c(paste0("decile_", 1:11), "enhancer", "promoter", "neutral"))]
 
@@ -117,13 +117,13 @@ tbl_chr <- functional[, ..keep]
 tbl_chr[, bin_1kb := pos %/% 1e3] # defining 1 kb bins
 
 # computing summaries across 1 kb bins, stratified by functional class
-tbl_means <- tbl_chr[, .(mean_roulette=mean(roulette, na.rm=T),
+tbl_chr <- tbl_chr[, .(mean_roulette=mean(roulette, na.rm=T),
                          mean_carlson=mean(carlson, na.rm=T),
                          mean_gnomad=mean(gnomad, na.rm=T),
                          n_sites_class=.N), by=.(bin_1kb, functional_class)]
 
 # pivoting to wide format
-wide <- dcast(tbl_means, bin_1kb ~ functional_class, value.var=c("mean_roulette", "mean_carlson", "mean_gnomad", "n_sites_class"))
+wide <- dcast(tbl_chr, bin_1kb ~ functional_class, value.var=c("mean_roulette", "mean_carlson", "mean_gnomad", "n_sites_class"))
 wide[, chrom := as.integer(chr)]
 
 cat("Reading B-map...")
@@ -142,21 +142,21 @@ for(i in seq_along(tbl_chr)) {
 # NOTE since we are joining B-values (see ggplot p3 in plot_functional.R) 
 # it makes sense to compute rations within each 1 kb bin, then summarize them later
 cat("done.\nComputing ratios...")
-functional_classs <- c(paste0("decile_", 1:11), "enhancer", "promoter")
+elems <- c(paste0("decile_", 1:11), "enhancer", "promoter")
 
-for(i in functional_classs) {
+for(i in elems) {
   tbl_chr[, paste0("ratio_roulette_class_", i) := get(paste0("mean_roulette_", i)) / mean_roulette_neutral]
   tbl_chr[, paste0("mean_roulette_", i) := NULL]
 }
 tbl_chr[, mean_roulette_neutral := NULL]
 
-for(i in functional_classs) {
+for(i in elems) {
   tbl_chr[, paste0("ratio_carlson_class_", i) := get(paste0("mean_carlson_", i)) / mean_carlson_neutral]
   tbl_chr[, paste0("mean_carlson_", i) := NULL]
 }
 tbl_chr[, mean_carlson_neutral := NULL]
 
-for(i in functional_classs) {
+for(i in elems) {
   tbl_chr[, paste0("ratio_gnomad_class_", i) := get(paste0("mean_gnomad_", i)) / mean_gnomad_neutral]
   tbl_chr[, paste0("mean_gnomad_", i) := NULL]
 }
@@ -195,19 +195,19 @@ cat("done.\nFinished unfiltered tables!\n")
 
 # keep only relevant columns
 keep <- c("chrom", "pos", "roulette",  "carlson", "gnomad", "functional_class", "triplet")
-tbl_chr <- functional[, ..keep]
+functional <- functional[, ..keep] # NOTE overwriting functional to free memory
 
 cat("Filtering out CpG sites...")
 
 CpGs <- c("ACG", "CCG", "GCG", "TCG", "CGA", "CGC", "CGG", "CGT")
-tbl_chr <- tbl_chr[!triplet %in% CpGs,]
+functional <- functional[!triplet %in% CpGs,]
 
 cat("done.\nComputing summaries across 1 kb bins, stratified by functional class...")
 
-tbl_chr[, triplet := NULL]
-tbl_chr[, bin_1kb := pos %/% 1e3] # defining 1 kb bins
+functional[, triplet := NULL]
+functional[, bin_1kb := pos %/% 1e3] # defining 1 kb bins
 
-tbl_means <- tbl_chr[, .(
+tbl_means <- functional[, .(
   mean_roulette=mean(roulette, na.rm=T),
   mean_carlson=mean(carlson, na.rm=T),
   mean_gnomad=mean(gnomad, na.rm=T),
@@ -223,41 +223,41 @@ b_chr <- fread(paste0("../B_1kb_roulette/B_map_YRI_chr", chr, "_1kb.csv.gz"))
 b_chr[, bin_1kb := pos %/% 1e3] # for joining
 
 cat("done.\nJoining and sanitizing...")
-tbl_chr <- wide[b_chr, on=.(chrom, bin_1kb), nomatch=0] 
-tbl_chr[, bin_1kb := NULL]
+functional <- wide[b_chr, on=.(chrom, bin_1kb), nomatch=0] 
+functional[, bin_1kb := NULL]
 
 # setting NaN's to NA
-for(i in seq_along(tbl_chr)) {
-  set(tbl_chr, which(is.nan(tbl_chr[[i]])), i, NA)
+for(i in seq_along(functional)) {
+  set(functional, which(is.nan(functional[[i]])), i, NA)
 }
 
 # NOTE since we are joining B-values (see ggplot p3 in plot_functional.R) 
 # it makes sense to compute rations within each 1 kb bin, then summarize them later
 cat("done.\nComputing ratios...")
-functional_classs <- c(paste0("decile_", 1:11), "enhancer", "promoter")
+elems <- c(paste0("decile_", 1:11), "enhancer", "promoter")
 
-for(i in functional_classs) {
-  tbl_chr[, paste0("ratio_roulette_class_", i) := get(paste0("mean_roulette_", i)) / mean_roulette_neutral]
-  tbl_chr[, paste0("mean_roulette_", i) := NULL]
+for(i in elems) {
+  functional[, paste0("ratio_roulette_class_", i) := get(paste0("mean_roulette_", i)) / mean_roulette_neutral]
+  functional[, paste0("mean_roulette_", i) := NULL]
 }
-tbl_chr[, mean_roulette_neutral := NULL]
+functional[, mean_roulette_neutral := NULL]
 
-for(i in functional_classs) {
-  tbl_chr[, paste0("ratio_carlson_class_", i) := get(paste0("mean_carlson_", i)) / mean_carlson_neutral]
-  tbl_chr[, paste0("mean_carlson_", i) := NULL]
+for(i in elems) {
+  functional[, paste0("ratio_carlson_class_", i) := get(paste0("mean_carlson_", i)) / mean_carlson_neutral]
+  functional[, paste0("mean_carlson_", i) := NULL]
 }
-tbl_chr[, mean_carlson_neutral := NULL]
+functional[, mean_carlson_neutral := NULL]
 
-for(i in functional_classs) {
-  tbl_chr[, paste0("ratio_gnomad_class_", i) := get(paste0("mean_gnomad_", i)) / mean_gnomad_neutral]
-  tbl_chr[, paste0("mean_gnomad_", i) := NULL]
+for(i in elems) {
+  functional[, paste0("ratio_gnomad_class_", i) := get(paste0("mean_gnomad_", i)) / mean_gnomad_neutral]
+  functional[, paste0("mean_gnomad_", i) := NULL]
 }
-tbl_chr[, mean_gnomad_neutral := NULL]
+functional[, mean_gnomad_neutral := NULL]
 
 cat("done.\nRe-organizing table...")
 
 # "transposing" table (only relevant columns)
-tbl_inv <- pivot_longer(tbl_chr, cols=starts_with("ratio_")) %>% setDT()
+tbl_inv <- pivot_longer(functional, cols=starts_with("ratio_")) %>% setDT()
 tbl_inv[, func_class := sub("ratio_*.*_class_", "", name)]
 tbl_inv[, variable := sub("_class.*", "", name)]
 
