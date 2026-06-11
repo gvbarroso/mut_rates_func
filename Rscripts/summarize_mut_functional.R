@@ -171,7 +171,7 @@ tbl_inv[, variable := sub("_class.*", "", name)]
 
 # getting 1 kb windows where only one class of functional functional_classents appear
 ## replace NA's with 0's
-counts <- paste0("n_sites_class_", functional_classs)
+counts <- paste0("n_sites_class_", elems)
 tbl_inv[, (counts) := lapply(.SD, function(x) fifelse(is.na(x), 0L, x)), .SDcols=counts]
 tbl_inv[, sum_constrained := rowSums(.SD), .SDcols=counts]
 tbl_inv[, map := sub(".*_", "", variable)]
@@ -262,7 +262,7 @@ tbl_inv[, func_class := sub("ratio_*.*_class_", "", name)]
 tbl_inv[, variable := sub("_class.*", "", name)]
 
 # getting 1 kb windows where only one class of functional functional_classents appear
-counts <- paste0("n_sites_class_", functional_classs)
+counts <- paste0("n_sites_class_", elems)
 tbl_inv[, (counts) := lapply(.SD, function(x) fifelse(is.na(x), 0L, x)), .SDcols=counts]
 tbl_inv[, sum_constrained := rowSums(.SD), .SDcols=counts]
 tbl_inv[, map := sub(".*_", "", variable)]
