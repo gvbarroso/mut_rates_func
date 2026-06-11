@@ -68,10 +68,15 @@ save_plot(paste0("plots/phastcons_triplets.pdf"), p0, base_height=7, base_width=
 
 ####################
 #
-# Comparing rates within and without phast elements
-# Here looking at phast sites vs genome-wide background
+# Comparing rates within and without phastcons elements
+# Here looking at phastcons sites vs genome-wide background
 #
 ####################
+
+# computing means across chromosomes, weighted by num sites in each window
+dat[, mean_class_triplet_roulette_gw := sum(mean_class_triplet_roulette * num_sites_roulette, na.rm=T) / sum(num_sites_roulette, na.rm = TRUE), by=.(phast_class)]
+dat[, mean_class_triplet_carlson_gw := sum(mean_class_triplet_carlson * num_sites_carlson, na.rm=T) / sum(num_sites_carlson, na.rm = TRUE), by=.(phast_class)]
+dat[, mean_class_triplet_gnomad_gw := sum(mean_class_triplet_gnomad * num_sites_gnomad, na.rm=T) / sum(num_sites_gnomad, na.rm = TRUE), by=.(phast_class)]
 
 dat_withCpG <- dplyr::select(dat, c(mean_class_triplet_roulette, mean_class_triplet_carlson, mean_class_triplet_gnomad, phast_class, triplet)) %>%
   unique(., by=c("phast_class", "triplet")) %>% setDT()
@@ -199,8 +204,8 @@ save_plot("plots/ratios_phast_triplet_classes.pdf", p2, base_height=8, base_widt
 
 ####################
 #
-# Comparing rates within and without phast elements
-# Here looking at phast sites vs other sites in 1 kb windows
+# Comparing rates within and without phastcons elements
+# Here looking at phastcons sites vs other sites in 1 kb windows
 #
 ####################
 
@@ -247,15 +252,14 @@ p3 <- ggplot(tbl, aes(x=phast_group, y=med_ratio)) +
                linewidth=0.9, lineend="round", inherit.aes=FALSE) +
   geom_point(aes(color=mean_B, group=hasCpG), size=3) +
   geom_errorbar(aes(ymin=med_ratio - se_ratio, ymax=med_ratio + se_ratio, color=mean_B), width=0.2, linewidth=0.7) +
-  labs(x="Constraint class", y=expression(paste(mu, " ratio")),
-       title="Ratios of mutation rates within (isolated) phastCons elements w.r.t. 1 kb background") +
+  labs(x="Constraint class", y=expression(paste(mu, " ratio")), title="Ratios of mutation rates within (isolated) phastCons elements w.r.t. 1 kb background") +
   scale_x_continuous(breaks=1:12) +
   scale_linetype_manual(name=NULL, values=c("FALSE"="solid", "TRUE"="dashed"), labels=c("TRUE"="With CpG", "FALSE"="Without CpG")) +
   scale_y_continuous(breaks=pretty_breaks(), limits=c(min(tbl$med_ratio) - tbl$se_ratio[which.min(tbl$med_ratio)],
                                                       max(tbl$med_ratio) + tbl$se_ratio[which.min(tbl$med_ratio)])) +
   scale_color_viridis_c(option="C", direction=1, name="B-value", breaks=c(round(min(tbl$mean_B) + 0.01, 2), round(max(tbl$mean_B) - 0.01, 2))) +
   guides(linetype=guide_legend(keywidth=unit(1.5, "cm"), keyheight=unit(0.2, "cm"),
-                                 override.aes=list(color="black", linewidth=1.2, x=0, xend=1, y=0.5, yend=0.5))) +
+                               override.aes=list(color="black", linewidth=1.2, x=0, xend=1, y=0.5, yend=0.5))) +
   theme(strip.text=element_text(size=16),
         axis.title=element_text(size=20),
         axis.text=element_text(size=16),

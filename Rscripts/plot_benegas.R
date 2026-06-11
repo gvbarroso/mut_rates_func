@@ -73,7 +73,12 @@ save_plot(paste0("plots/benegas_triplets.pdf"), p0, base_height=7, base_width=10
 #
 ####################
 
-dat_withCpG <- dplyr::select(dat, c(mean_class_triplet_roulette, mean_class_triplet_carlson, mean_class_triplet_gnomad, benegas_class, triplet)) %>%
+# computing means across chromosomes, weighted by num sites in each window
+dat[, mean_class_triplet_roulette_gw := sum(mean_class_triplet_roulette * num_sites_roulette, na.rm=T) / sum(num_sites_roulette, na.rm = TRUE), by=.(benegas_class)]
+dat[, mean_class_triplet_carlson_gw := sum(mean_class_triplet_carlson * num_sites_carlson, na.rm=T) / sum(num_sites_carlson, na.rm = TRUE), by=.(benegas_class)]
+dat[, mean_class_triplet_gnomad_gw := sum(mean_class_triplet_gnomad * num_sites_gnomad, na.rm=T) / sum(num_sites_gnomad, na.rm = TRUE), by=.(benegas_class)]
+
+dat_withCpG <- dplyr::select(dat, c(mean_class_triplet_roulette_gw, mean_class_triplet_carlson, mean_class_triplet_gnomad, benegas_class, triplet)) %>%
   unique(., by=c("benegas_class", "triplet")) %>% setDT()
 
 dat_withCpG[, `:=`(mean_roluette_group=mean(mean_class_triplet_roulette),
@@ -246,8 +251,7 @@ p3 <- ggplot(tbl, aes(x=benegas_group, y=med_ratio)) +
                linewidth=0.9, lineend="round", inherit.aes=FALSE) +
   geom_point(aes(color=mean_B, group=hasCpG), size=3) +
   geom_errorbar(aes(ymin=med_ratio - se_ratio, ymax=med_ratio + se_ratio, color=mean_B), width=0.2, linewidth=0.7) +
-  labs(x="Constraint class", y=expression(paste(mu, " ratio")),
-       title="Ratios of mutation rates within (isolated) Benegas elements w.r.t. 1 kb background") +
+  labs(x="Constraint class", y=expression(paste(mu, " ratio")), title="Ratios of mutation rates within (isolated) Benegas elements w.r.t. 1 kb background") +
   scale_x_continuous(breaks=1:12) +
   scale_linetype_manual(name=NULL, values=c("FALSE"="solid", "TRUE"="dashed"), labels=c("TRUE"="With CpG", "FALSE"="Without CpG")) +
   scale_y_continuous(breaks=pretty_breaks(), limits=c(min(tbl$med_ratio) - tbl$se_ratio[which.min(tbl$med_ratio)], 1)) +

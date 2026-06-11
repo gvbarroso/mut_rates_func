@@ -178,17 +178,19 @@ cat("Filtering out CpG sites...")
 CpGs <- c("ACG", "CCG", "GCG", "TCG", "CGA", "CGC", "CGG", "CGT")
 tbl_chr <- tbl_chr[!triplet %in% CpGs,]
 
+cat("done.\nComputing summaries across 1 kb bins, stratified by functional class...")
+
 tbl_chr[, triplet := NULL]
 tbl_chr[, bin_1kb := pos %/% 1e3] # defining 1 kb bins
 
-# computing summaries across 1 kb bins, stratified by phastcons bin
 tbl_means <- tbl_chr[, .(
   mean_roulette=mean(roulette, na.rm=T),
   mean_carlson=mean(carlson, na.rm=T),
   mean_gnomad=mean(gnomad, na.rm=T),
   n_sites_class=.N), by=.(bin_1kb, phast_class)]
 
-# pivoting to wide format
+cat("done.\nPivoting to wide format...")
+
 wide <- dcast(tbl_means, bin_1kb ~ phast_class, value.var=c("mean_roulette", "mean_carlson", "mean_gnomad", "n_sites_class"))
 wide[, chrom := as.integer(chr)]
 
