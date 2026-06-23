@@ -1,4 +1,3 @@
-
 ####################
 #
 # Setting up
@@ -123,13 +122,16 @@ m_ratios <- pivot_longer(rbind.data.frame(dat_withCpG, dat_nonCpG), cols=starts_
 m_ratios <- filter(m_ratios, functional_class != "decile_11") %>% setDT() # filtering out "extra" exons
 m_ratios[, functional_class := factor(gsub("^decile_", "d_", functional_class), levels=c(paste0("d_", 1:10), "enhancer", "promoter"))]
 
+m_ratios[, annotation := "Functional"]
+fwrite(m_ratios, "gw_ratios_functional.csv")
+
+# "Ratios of mutation rates within functional elements w.r.t. genome-wide background"
 p1 <- ggplot(m_ratios, aes(x=functional_class, y=ratio, color=map, group=paste0(map, CpG))) +
   geom_line(aes(linetype=CpG), linewidth=1) + geom_point(size=3) + 
   geom_hline(yintercept=1, linetype="dashed", color="grey") + theme_classic() + 
   scale_color_manual(values=c("brown1", "cyan3", "seagreen"), name=NULL,
                      labels=c("ratio_roulette"="Roulette", "ratio_gnomad"="gnomAD", "ratio_carlson"="Carlson")) +
-  labs(x="Constraint class", y=expression(paste(mu, " ratio")),
-       title="Ratios of mutation rates within functional elements w.r.t. genome-wide background") +
+  labs(x="Constraint class", y=expression(paste(mu, " ratio")), title=NULL) +
   scale_linetype_manual(name=NULL, values=c("FALSE"="solid", "TRUE"="dashed"),
                         labels=c("TRUE"="With CpG", "FALSE"="Without CpG")) +
   guides(linetype=guide_legend(keywidth=unit(1.5, "cm"), keyheight=unit(0.2, "cm"),
@@ -172,7 +174,10 @@ ratios_functional_m <- pivot_longer(ratios_functional, cols=starts_with("ratio_"
 
 ratios_functional_m[, map := factor(sub("^ratio_", "", map), levels=c("roulette", "carlson", "gnomad"))]
 ratios_functional_m[, class := sub(".*_", "", functional_class)] # for splitting plot colors between exons and regulatory
+ratios_functional_m[, annotation := "Functional"]
+fwrite(ratios_functional_m, "ratios_triplets_functional.csv")
 
+# "Ratios of mutation rates within functional classes stratified by triplet context"
 p2a <- ggplot(filter(ratios_functional_m, map=="carlson")) + 
   annotate(xmin=which(levels(factor(ratios_functional_m$triplet)) %in% CpGs) - 0.5,
            xmax=which(levels(factor(ratios_functional_m$triplet)) %in% CpGs) + 0.5,
@@ -186,8 +191,7 @@ geom_point(data=subset(ratios_functional_m, map=="carlson" & functional_class %i
   scale_color_manual(name=NULL, values=c(enhancer="seagreen", promoter="cyan3")) +
 geom_hline(yintercept=1, linetype="dashed", color="black") +
   theme_classic() +
-  labs(x=NULL, y=expression(paste(mu, " ratio (Carlson)")),
-       title="Ratios of mutation rates within functional functional_classents stratified by triplet context") +
+  labs(x=NULL, y=expression(paste(mu, " ratio (Carlson)")), title=NULL) +
   theme(strip.text=element_text(size=18),
         axis.title=element_text(size=18),
         axis.text.y=element_text(size=14),
@@ -245,22 +249,27 @@ tbl_med_ratios <- dat[, .(med_ratio=median(value, na.rm=T),
 
 b_group <- dat[, .(mean_B=mean(B)), by=.(func_class)] # joining mean B-value
 tbl <- tbl_med_ratios[b_group, on=.(func_class)]
+tbl <- tbl[func_class != "decile_11", ]
+tbl[, class := factor(sub(".*_", "d_", func_class), levels=c(paste0("d_", 1:10), "enhancer", "promoter"))]
+tbl[, annotation := "Functional"]
+fwrite(tbl, "ratios_1kb_functional.csv")
 
 map_labels <- c("carlson"="Carlson", "gnomad"="gnomAD", "roulette"="Roulette")
 
 # separate table to plot segments because lines cannot be plotted with both color and linetype
 seg_df <- tbl %>%
-  arrange(map, hasCpG, func_class) %>%
+  arrange(map, hasCpG, class) %>%
   group_by(map, hasCpG) %>%
-  mutate(x=func_class,
+  mutate(x=class,
          y=med_ratio,
-         xend=lead(func_class),
+         xend=lead(class),
          yend=lead(med_ratio),
          mean_B_mid=(mean_B + lead(mean_B)) / 2) %>%
   filter(!is.na(xend)) %>%
   ungroup()
 
-p3 <- ggplot(tbl, aes(x=func_class, y=med_ratio)) +
+# "Ratios of mutation rates within (isolated) functional_elements w.r.t. 1 kb background"
+p3 <- ggplot(tbl, aes(x=class, y=med_ratio)) +
   facet_wrap(~map, labeller=labeller(map=map_labels)) +
   geom_hline(yintercept=1, linetype="dashed", color="grey") + theme_classic() +
   geom_segment(data=seg_df,
@@ -268,7 +277,7 @@ p3 <- ggplot(tbl, aes(x=func_class, y=med_ratio)) +
                linewidth=0.9, lineend="round", inherit.aes=FALSE) +
   geom_point(aes(color=mean_B, group=hasCpG), size=3) +
   geom_errorbar(aes(ymin=med_ratio - se_ratio, ymax=med_ratio + se_ratio, color=mean_B), width=0.2, linewidth=0.7) +
-  labs(x="Constraint class", y=expression(paste(mu, " ratio")), title="Ratios of mutation rates within (isolated) functional_elements w.r.t. 1 kb background") +
+  labs(x="Constraint class", y=expression(paste(mu, " ratio")), title=NULL) +
   scale_linetype_manual(name=NULL, values=c("FALSE"="solid", "TRUE"="dashed"), labels=c("TRUE"="With CpG", "FALSE"="Without CpG")) +
   scale_y_continuous(breaks=pretty_breaks(), limits=c(min(tbl$med_ratio) - tbl$se_ratio[which.min(tbl$med_ratio)],
                                                       max(tbl$med_ratio) + tbl$se_ratio[which.max(tbl$med_ratio)])) +

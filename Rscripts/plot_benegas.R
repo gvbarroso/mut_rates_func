@@ -96,7 +96,7 @@ dat_withCpG <- dat_withCpG[benegas_class < 15, .(benegas_class, ratio_roulette, 
 
 # filtering out CpG sites
 dat_nonCpG <- dplyr::select(dat, c(mean_class_triplet_roulette, mean_class_triplet_carlson, mean_class_triplet_gnomad,
-                                    num_sites_roulette, num_sites_carlson, num_sites_gnomad, benegas_class, triplet)) %>% 
+                                   num_sites_roulette, num_sites_carlson, num_sites_gnomad, benegas_class, triplet)) %>% 
               filter(., !triplet %in% CpGs) %>% setDT()
 
 # computing means across chromosomes, weighted by num sites in each window
@@ -117,16 +117,18 @@ dat_nonCpG[, ratio_gnomad := mean_class_triplet_gnomad_gw / denom_carlson, by=be
 dat_nonCpG[, CpG := F] 
 dat_nonCpG <- dat_nonCpG[benegas_class < 15, .(benegas_class, ratio_roulette, ratio_carlson, ratio_gnomad, CpG)]
 
-m_ratios <- pivot_longer(rbind.data.frame(dat_withCpG, dat_nonCpG), cols=starts_with("ratio"), values_to="ratio", names_to="map")
+m_ratios <- pivot_longer(rbind.data.frame(dat_withCpG, dat_nonCpG), cols=starts_with("ratio"), values_to="ratio", names_to="map") %>% setDT()
+m_ratios[, annotation := "Benegas"]
+fwrite(m_ratios, "gw_ratios_benegas.csv")
 
+# "Ratios of mutation rates within Benegas elements w.r.t. genome-wide background"
 p1 <- ggplot(m_ratios, aes(x=benegas_class, y=ratio, color=map, group=paste0(map, CpG))) +
   geom_line(aes(linetype=CpG), linewidth=1) + geom_point(size=3) + 
   geom_hline(yintercept=1, linetype="dashed", color="grey") +
   scale_x_continuous(breaks=1:nclasses) + theme_classic() + 
   scale_color_manual(values=c("brown1", "cyan3", "seagreen"), name=NULL,
                      labels=c("ratio_roulette"="Roulette", "ratio_gnomad"="gnomAD", "ratio_carlson"="Carlson")) +
-  labs(x="Constraint class", y=expression(paste(mu, " ratio")),
-       title="Ratios of mutation rates within Benegas elements w.r.t. genome-wide background") +
+  labs(x="Constraint class", y=expression(paste(mu, " ratio")), title=NULL) +
   scale_linetype_manual(name=NULL, values=c("FALSE"="solid", "TRUE"="dashed"),
                         labels=c("TRUE"="With CpG", "FALSE"="Without CpG")) +
   guides(linetype=guide_legend(keywidth=unit(1.5, "cm"), keyheight=unit(0.2, "cm"),
@@ -166,7 +168,10 @@ ratios_benegas[, c("num_roulette", "num_carlson", "num_gnomad", "den_roulette", 
 ratios_benegas_m <- pivot_longer(ratios_benegas, cols=starts_with("ratio_"), names_to="map", values_to="ratio") %>% setDT()
 
 ratios_benegas_m[, map := factor(sub("^ratio_", "", map), levels = c("roulette", "carlson", "gnomad"))]
+ratios_benegas_m[, annotation := "Benegas"]
+fwrite(ratios_benegas_m, "ratios_triplets_benegas.csv")
 
+# "Ratios of mutation rates within Benegas elements stratified by triplet context"
 p2a <- ggplot(filter(ratios_benegas_m, map=="carlson"),
               aes(x=triplet, y=ratio, color=benegas_class)) + 
   annotate(xmin = which(levels(factor(ratios_benegas_m$triplet)) %in% CpGs) - 0.5,
@@ -174,9 +179,8 @@ p2a <- ggplot(filter(ratios_benegas_m, map=="carlson"),
            geom="rect", ymin = -Inf, ymax = Inf, fill = "grey85", alpha = 0.6) +
   geom_point(size=2.5) + theme_classic() + 
   geom_hline(yintercept=1, linetype="dashed", color="green4") +
-  scale_color_viridis_c(option="C", direction=1, name="Class", breaks=c(1, 12)) +
-  labs(x=NULL, y=expression(paste(mu, " ratio (Carlson)")),
-       title="Ratios of mutation rates within Benegas elements stratified by triplet context") +
+  scale_color_viridis_c(option="C", direction=1, name="Constraint Class", breaks=c(1, 12)) +
+  labs(x=NULL, y=expression(paste(mu, " ratio (Carlson)")), title=NULL) +
   theme(strip.text=element_text(size=18),
         axis.title=element_text(size=18),
         axis.text.y=element_text(size=14),
@@ -193,7 +197,7 @@ p2b <- ggplot(filter(ratios_benegas_m, map=="roulette"),
            geom="rect", ymin = -Inf, ymax = Inf, fill = "grey85", alpha = 0.6) +
   geom_point(size=2.5) + theme_classic() + 
   geom_hline(yintercept=1, linetype="dashed", color="green4") +
-  scale_color_viridis_c(option="C", direction=1, name="Class", breaks=c(1, 12)) +
+  scale_color_viridis_c(option="C", direction=1, name="Constraint Class", breaks=c(1, 12)) +
   labs(x=NULL, y=expression(paste(mu, " ratio (Roulette)")), title=NULL) +
   theme(strip.text=element_text(size=18),
         axis.title=element_text(size=18),
@@ -232,6 +236,8 @@ tbl_med_ratios <- dat[, .(med_ratio=median(value, na.rm=T),
 
 b_group <- dat[, .(mean_B = mean(B)), by=.(benegas_group)] # joining mean B-value
 tbl <- tbl_med_ratios[b_group, on=.(benegas_group)]
+tbl[, annotation := "Benegas"]
+fwrite(tbl, "ratios_1kb_benegas.csv")
 
 map_labels <- c("carlson"="Carlson", "gnomad"="gnomAD", "roulette"="Roulette")
 
@@ -247,6 +253,7 @@ seg_df <- tbl %>%
   filter(!is.na(xend)) %>%
   ungroup()
 
+# "Ratios of mutation rates within (isolated) Benegas elements w.r.t. 1 kb background"
 p3 <- ggplot(tbl, aes(x=benegas_group, y=med_ratio)) +
   facet_wrap(~map, labeller=labeller(map=map_labels)) +
   geom_hline(yintercept=1, linetype="dashed", color="grey") + theme_classic() +
@@ -255,7 +262,7 @@ p3 <- ggplot(tbl, aes(x=benegas_group, y=med_ratio)) +
                linewidth=0.9, lineend="round", inherit.aes=FALSE) +
   geom_point(aes(color=mean_B, group=hasCpG), size=3) +
   geom_errorbar(aes(ymin=med_ratio - se_ratio, ymax=med_ratio + se_ratio, color=mean_B), width=0.2, linewidth=0.7) +
-  labs(x="Constraint class", y=expression(paste(mu, " ratio")), title="Ratios of mutation rates within (isolated) Benegas elements w.r.t. 1 kb background") +
+  labs(x="Constraint class", y=expression(paste(mu, " ratio")), title=NULL) +
   scale_x_continuous(breaks=1:12) +
   scale_linetype_manual(name=NULL, values=c("FALSE"="solid", "TRUE"="dashed"), labels=c("TRUE"="With CpG", "FALSE"="Without CpG")) +
   scale_y_continuous(breaks=pretty_breaks(), limits=c(min(tbl$med_ratio) - tbl$se_ratio[which.min(tbl$med_ratio)], 1)) +
