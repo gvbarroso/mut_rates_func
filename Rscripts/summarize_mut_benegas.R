@@ -146,7 +146,7 @@ cat("done.\nFinished unfiltered tables!\n")
 
 #########################
 #
-# 1 kb windows (filtered by triplet)
+# 1 kb windows (filtered by triplet to exclude CpG)
 #
 ########################
 

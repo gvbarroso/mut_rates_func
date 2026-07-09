@@ -68,7 +68,7 @@ cat("done.\nJoining maps...")
 functional <- mut_map[functional, on=.(chrom, pos), nomatch=0]
 
 rm(list=c("mut_map"))
-invisible(gc(full = TRUE))
+invisible(gc(full=TRUE))
 
 plot_df <- functional[, .N, by=.(chrom, triplet, functional_class)]
 fwrite(plot_df, paste0("summary_tbls/stacks_functional_chr", chr, ".csv.gz"))
@@ -91,7 +91,7 @@ functional[, se_class_triplet_roulette := sd(roulette, na.rm=T) / sqrt(.N), by=.
 functional[, se_class_triplet_carlson := sd(carlson, na.rm=T) / sqrt(.N), by=.(functional_class, triplet)]
 functional[, se_class_triplet_gnomad := sd(gnomad, na.rm=T) / sqrt(.N), by=.(functional_class, triplet)]
 
-# storing number of sites per class per triplet (used to compute the means for focal chr)
+# storing number of sites per class per triplet (used later to compute the means for focal chr)
 functional[, `:=`(num_sites_roulette=sum(!is.na(roulette)),
                   num_sites_carlson=sum(!is.na(carlson)),
                   num_sites_gnomad=sum(!is.na(gnomad))),
@@ -118,9 +118,9 @@ tbl_chr[, bin_1kb := pos %/% 1e3] # defining 1 kb bins
 
 # computing summaries across 1 kb bins, stratified by functional class
 tbl_chr <- tbl_chr[, .(mean_roulette=mean(roulette, na.rm=T),
-                         mean_carlson=mean(carlson, na.rm=T),
-                         mean_gnomad=mean(gnomad, na.rm=T),
-                         n_sites_class=.N), by=.(bin_1kb, functional_class)]
+                       mean_carlson=mean(carlson, na.rm=T),
+                       mean_gnomad=mean(gnomad, na.rm=T),
+                       n_sites_class=.N), by=.(bin_1kb, functional_class)]
 
 # pivoting to wide format
 wide <- dcast(tbl_chr, bin_1kb ~ functional_class, value.var=c("mean_roulette", "mean_carlson", "mean_gnomad", "n_sites_class"))
@@ -169,7 +169,7 @@ tbl_inv <- pivot_longer(tbl_chr, cols=starts_with("ratio_")) %>% setDT()
 tbl_inv[, func_class := sub("ratio_*.*_class_", "", name)]
 tbl_inv[, variable := sub("_class.*", "", name)]
 
-# getting 1 kb windows where only one class of functional functional_classents appear
+# getting 1 kb windows where only one class of functional elements appear
 ## replace NA's with 0's
 counts <- paste0("n_sites_class_", elems)
 tbl_inv[, (counts) := lapply(.SD, function(x) fifelse(is.na(x), 0L, x)), .SDcols=counts]
@@ -189,7 +189,7 @@ cat("done.\nFinished unfiltered tables!\n")
 
 #########################
 #
-# 1 kb windows (filtered by triplet)
+# 1 kb windows (filtered by triplet to exclude CpG)
 #
 ########################
 
