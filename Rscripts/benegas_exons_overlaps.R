@@ -47,7 +47,7 @@ plot_df_overlaps[, chr := chr]
 
 # writing to compute stratified ratios in a dedicated script
 overlaps[, overlap_benegas_exon := T]
-fwrite(overlaps, paste0("overlaps_benegas_exons_chr", chr, ".csv.gz"))
+fwrite(overlaps, paste0("summary_tbls/overlaps_benegas_exons_chr", chr, ".csv.gz"))
 
 # plotting from both perspectives
 p1 <- ggplot(plot_df_overlaps, aes(x=decile, y=N, fill=benegas_class)) +
@@ -81,4 +81,4 @@ p2 <- ggplot(plot_df_overlaps, aes(x=benegas_class, y=N, fill=decile)) +
         legend.box="horizontal")
 
 p <- plot_grid(p1, p2, nrow=1, labels="AUTO")
-save_plot("ov_exons_benegas.pdf", p, base_height=6, base_width=14)
+save_plot(paste0("ov_exons_benegas_chr", chr, ".pdf"), p, base_height=6, base_width=14)

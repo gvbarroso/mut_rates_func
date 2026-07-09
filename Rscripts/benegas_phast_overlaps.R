@@ -50,8 +50,6 @@ plot_df_overlaps[is.na(benegas_class), benegas_class := 15]
 plot_df_overlaps[, benegas_class := factor(as.character(benegas_class), levels = c(as.character(1:12), "15"))]
 plot_df_overlaps[, chr := chr]
 
-fwrite(plot_df_overlaps, paste0("overlaps_chr", chr, ".csv.gz"))
-
 p <- ggplot(plot_df_overlaps, aes(x=phast_class, y=N, fill=benegas_class)) +
   geom_col() + theme_classic() +
   scale_x_discrete(breaks=1:12) +
@@ -66,5 +64,5 @@ p <- ggplot(plot_df_overlaps, aes(x=phast_class, y=N, fill=benegas_class)) +
         axis.text.y=element_text(hjust=1),
         legend.position="bottom",
         legend.box="horizontal")
-save_plot("benegas_phast_overlaps.pdf", p, base_height=6, base_width=7)
+save_plot(paste0("benegas_phast_overlaps_chr", chr, ".pdf"), p, base_height=6, base_width=7)
 
