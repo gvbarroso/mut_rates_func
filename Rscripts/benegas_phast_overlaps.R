@@ -6,6 +6,7 @@
 
 library(data.table)
 library(tidyverse)
+library(scales)
 
 args <- commandArgs(trailingOnly=T)
 chr <- args[1]
