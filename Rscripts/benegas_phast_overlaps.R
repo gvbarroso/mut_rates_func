@@ -7,6 +7,7 @@
 library(data.table)
 library(tidyverse)
 library(scales)
+library(cowplot)
 
 args <- commandArgs(trailingOnly=T)
 chr <- args[1]
