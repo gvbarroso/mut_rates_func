@@ -89,6 +89,6 @@ p2 <- ggplot(plot_df_overlaps, aes(x=benegas_class, y=N, fill=decile)) +
         legend.box="horizontal")
 
 p <- plot_grid(p1, p2, nrow=1, labels="AUTO")
-save_plot(paste0("ov_exons_benegas_chr", chr, ".pdf"), p, base_height=6, base_width=14)
+save_plot(paste0("plots/ov_exons_benegas_chr", chr, ".pdf"), p, base_height=6, base_width=14)
 
 cat("Finished.\n")
