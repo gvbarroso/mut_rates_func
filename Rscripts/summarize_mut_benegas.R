@@ -17,7 +17,7 @@ chr <- args[1]
 ########################
 
 cat(paste0("Reading mutation maps for chr ", chr, "..."))
-mut_files <- list.files("../split_muts/", pattern=paste0("^mut_map_chr", chr, "_"), full.names=T)
+mut_files <- list.files("/../../media/gvbarroso/extradrive1/mut_rates_func/split_muts/", pattern=paste0("^mut_map_chr", chr, "_"), full.names=T)
 mut_map <- data.table::rbindlist(lapply(mut_files, fread))
 
 cat("done.\nReading score map...")
