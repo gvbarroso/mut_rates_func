@@ -20,6 +20,7 @@ chr <- args[1]
 
 cat("\nReading Benegas score map...")
 scores_chr <- fread(paste0("/../../media/gvbarroso/extradrive1/mut_rates_func/benegas/score_bins/benegas_bins_chr", chr, ".csv.gz"))
+#scores_chr <- fread(paste0("../../../Data/transfer/benegas_bins_chr", chr, ".csv.gz"))
 setnames(scores_chr, old="benegas_bin", new="benegas_class") # reserving "bin" to '1 kb bins'
 scores_chr <- scores_chr[benegas_class < 15,] # assuming a classification w/ 1-12 -> constrained, 15 -> neutral
 
@@ -44,27 +45,29 @@ phast[, chrom := as.integer(chrom)]
 phast <- phast[, .(pos=seq(chromStart, chromEnd)), by=.(chrom, phast_class, chromStart, chromEnd)][, c("chromStart", "chromEnd") := NULL]
 
 cat("done.\nJoining maps...")
-overlaps <- scores_chr[phast, on=.(chrom, pos)] 
+overlaps <- merge(scores_chr, phast, by=c("chrom", "pos"), all=F) # keeping just the overlapping sites
 
-plot_df_overlaps <- overlaps[, .N, by=.(benegas_class, phast_class)]
-plot_df_overlaps[, phast_class := factor(as.character(phast_class), levels = as.character(1:12))]
-plot_df_overlaps[is.na(benegas_class), benegas_class := 15]
-plot_df_overlaps[, benegas_class := factor(as.character(benegas_class), levels = c(as.character(1:12), "15"))]
-plot_df_overlaps[, chr := chr]
+overlaps[, overlap_benegas_exon := T] # set all to TRUE (by construction)
+fwrite(overlaps, paste0("summary_tbls/overlaps_benegas_phast_chr", chr, ".csv.gz"))
 
-p <- ggplot(plot_df_overlaps, aes(x=phast_class, y=N, fill=benegas_class)) +
-  geom_col() + theme_classic() +
-  scale_x_discrete(breaks=1:12) +
-  scale_y_continuous(breaks=pretty_breaks()) +
-  scale_fill_viridis_d(option="C", direction=1, guide=guide_legend(nrow=4), name=NULL) +
-  labs(title="Overlaps between phastCons and Benegas scores", x=NULL, y=NULL, fill="Benegas") +
-  guides(fill=guide_legend(nrow=1)) +
-  theme(panel.grid=element_blank(),
-        axis.text=element_text(size=12),
-        axis.text.x=element_text(size=12),
-        axis.title=element_text(size=16),
-        axis.text.y=element_text(hjust=1),
-        legend.position="bottom",
-        legend.box="horizontal")
-save_plot(paste0("benegas_phast_overlaps_chr", chr, ".pdf"), p, base_height=6, base_width=7)
+# plot_df_overlaps <- overlaps[, .N, by=.(benegas_class, phast_class)]
+# plot_df_overlaps[, phast_class := factor(as.character(phast_class), levels = as.character(1:12))]
+# plot_df_overlaps[is.na(benegas_class), benegas_class := 15]
+# plot_df_overlaps[, benegas_class := factor(as.character(benegas_class), levels = c(as.character(1:12), "15"))]
+# plot_df_overlaps[, chr := chr]
 
+# p <- ggplot(plot_df_overlaps, aes(x=phast_class, y=N, fill=benegas_class)) +
+#   geom_col() + theme_classic() +
+#   scale_x_discrete(breaks=1:12) +
+#   scale_y_continuous(breaks=pretty_breaks()) +
+#   scale_fill_viridis_d(option="C", direction=1, guide=guide_legend(nrow=4), name=NULL) +
+#   labs(title="Overlaps between phastCons and Benegas scores", x=NULL, y=NULL, fill="Benegas") +
+#   guides(fill=guide_legend(nrow=1)) +
+#   theme(panel.grid=element_blank(),
+#         axis.text=element_text(size=12),
+#         axis.text.x=element_text(size=12),
+#         axis.title=element_text(size=16),
+#         axis.text.y=element_text(hjust=1),
+#         legend.position="bottom",
+#         legend.box="horizontal")
+# save_plot(paste0("benegas_phast_overlaps_chr", chr, ".pdf"), p, base_height=6, base_width=7)
