@@ -47,8 +47,9 @@ phast <- phast[, .(pos=seq(chromStart, chromEnd)), by=.(chrom, phast_class, chro
 cat("done.\nJoining maps...")
 overlaps <- merge(scores_chr, phast, by=c("chrom", "pos"), all=F) # keeping just the overlapping sites
 
-overlaps[, overlap_benegas_exon := T] # set all to TRUE (by construction)
+overlaps[, overlap_benegas_phast := T] # set all to TRUE (by construction)
 fwrite(overlaps, paste0("summary_tbls/overlaps_benegas_phast_chr", chr, ".csv.gz"))
+cat("Finished!\n")
 
 # plot_df_overlaps <- overlaps[, .N, by=.(benegas_class, phast_class)]
 # plot_df_overlaps[, phast_class := factor(as.character(phast_class), levels = as.character(1:12))]

@@ -24,10 +24,10 @@ mut_map <- data.table::rbindlist(lapply(mut_files, fread))
 cat("done.\nReading score map...") # reads all scores (not just those overlapping exons)
 scores_chr <- fread(paste0("/../../media/gvbarroso/extradrive1/mut_rates_func/benegas/score_bins/benegas_bins_chr", chr, ".csv.gz"))
 #scores_chr <- fread(paste0("../../../Data/transfer/benegas_bins_chr", chr, ".csv.gz"))
-setnames(scores_chr, old="benegas_bin", new="benegas_class")
+setnames(scores_chr, old="benegas_bin", new="benegas_class") 
 
-cat("done.\nReading overlap benegas-exons...") # Benegas && Exons from benegas_exons_overlaps.R
-ov_chr <- fread(paste0("summary_tbls/overlaps_benegas_exons_chr", chr, ".csv.gz"))
+cat("done.\nReading overlap benegas-exons...") # Benegas && phastCons from benegas_exons_overlaps.R
+ov_chr <- fread(paste0("summary_tbls/overlaps_benegas_phast_chr", chr, ".csv.gz"))
 
 cat("done.\nJoining maps...")
 scores_chr <- mut_map[scores_chr, on=.(chrom, pos), nomatch=0] 
@@ -37,7 +37,7 @@ scores_chr[, benegas_class := fcoalesce(benegas_class.x, benegas_class.y)]
 scores_chr[, benegas_class.x := NULL]
 scores_chr[, benegas_class.y := NULL]
 # setting status of sites the do not overlap exons to FALSE
-set(scores_chr, which(is.na(scores_chr[["overlap_benegas_exon"]])), "overlap_benegas_exon", F)
+set(scores_chr, which(is.na(scores_chr[["overlap_benegas_phast"]])), "overlap_benegas_phast", F)
 
 cat("done.\nSummarizing tables...")
 
