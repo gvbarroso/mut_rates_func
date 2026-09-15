@@ -98,7 +98,7 @@ for(i in seq_along(tbl_chr)) {
 }
 
 # NOTE since we are joining B-values (see ggplot p3 in plot_benegas.R) 
-# it makes sense to compute rations within each 1 kb bin, then summarize them later
+# it makes sense to compute ratios within each 1 kb bin, then summarize them later
 cat("done.\nComputing ratios...")
 
 # class 15 is putatively neutral
@@ -122,7 +122,7 @@ tbl_chr[, mean_gnomad_15 := NULL]
 
 cat("done.\nRe-organizing table...")
 
-# "transposing" table (onloy relevant columns)
+# "transposing" table (only relevant columns)
 tbl_inv <- pivot_longer(tbl_chr, cols=starts_with("ratio_")) %>% setDT()
 tbl_inv[, benegas_group := as.integer(sub(".*_", "", name))]
 tbl_inv[, variable := sub("_class.*", "", name)]
@@ -189,7 +189,7 @@ for(i in seq_along(tbl_chr)) {
 }
 
 # NOTE since we are joining B-values (see ggplot p3 in plot_phastcons.R) 
-# it makes sense to compute rations within each 1 kb bin, then summarize them later
+# it makes sense to compute ratios within each 1 kb bin, then summarize them later
 cat("done.\nComputing ratios...")
 
 # class 15 is putatively neutral

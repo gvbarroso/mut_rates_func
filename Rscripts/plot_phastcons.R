@@ -74,6 +74,7 @@ save_plot(paste0("plots/phastcons_triplets.pdf"), p0, base_height=7, base_width=
 ####################
 
 dat_withCpG <- dplyr::select(dat, c(mean_class_triplet_roulette, mean_class_triplet_carlson, mean_class_triplet_gnomad,
+                                    se_class_roulette, se_class_gnomad, se_class_carlson,
                                     num_sites_roulette, num_sites_carlson, num_sites_gnomad, phast_class, triplet)) %>% setDT()
 
 # computing means across chromosomes, weighted by num sites in each window
@@ -81,8 +82,25 @@ dat_withCpG[, mean_class_triplet_roulette_gw := sum(mean_class_triplet_roulette 
 dat_withCpG[, mean_class_triplet_carlson_gw := sum(mean_class_triplet_carlson * num_sites_carlson, na.rm=T) / sum(num_sites_carlson, na.rm = TRUE), by=.(phast_class)]
 dat_withCpG[, mean_class_triplet_gnomad_gw := sum(mean_class_triplet_gnomad * num_sites_gnomad, na.rm=T) / sum(num_sites_gnomad, na.rm = TRUE), by=.(phast_class)]
 
+# SEs across chromosomes
+gw_se_roulette <- dat_withCpG[, { m <- dat_withCpG[phast_class == .BY$phast_class, mean_class_triplet_roulette_gw]
+v <- sum(num_sites_roulette * (se_class_roulette^2 + (mean_class_triplet_roulette_gw - m)^2)) / sum(num_sites_roulette) 
+.(se_gw_roulette = sqrt(v)) }, by = phast_class]
+
+gw_se_carlson <- dat_withCpG[, { m <- dat_withCpG[phast_class == .BY$phast_class, mean_class_triplet_carlson_gw]
+v <- sum(num_sites_carlson * (se_class_carlson^2 + (mean_class_triplet_carlson_gw - m)^2)) / sum(num_sites_carlson) 
+.(se_gw_carlson = sqrt(v)) }, by = phast_class]
+
+gw_se_gnomad <- dat_withCpG[, { m <- dat_withCpG[phast_class == .BY$phast_class, mean_class_triplet_gnomad_gw]
+v <- sum(num_sites_gnomad * (se_class_gnomad^2 + (mean_class_triplet_gnomad_gw - m)^2)) / sum(num_sites_gnomad) 
+.(se_gw_gnomad = sqrt(v)) }, by = phast_class]
+
 dat_withCpG <- unique(dat_withCpG, by=c("phast_class")) %>% 
   dplyr::select(., c(phast_class, mean_class_triplet_roulette_gw, mean_class_triplet_carlson_gw, mean_class_triplet_gnomad_gw)) %>% setDT()
+
+dat_withCpG <- merge(dat_withCpG, gw_se_roulette, by="phast_class")
+dat_withCpG <- merge(dat_withCpG, gw_se_carlson, by="phast_class")
+dat_withCpG <- merge(dat_withCpG, gw_se_gnomad, by="phast_class")
 
 denom_roulette <- dat_withCpG[phast_class==15, mean_class_triplet_roulette_gw]
 denom_carlson <- dat_withCpG[phast_class==15, mean_class_triplet_carlson_gw]
@@ -91,11 +109,16 @@ denom_gnomad <- dat_withCpG[phast_class==15, mean_class_triplet_gnomad_gw]
 dat_withCpG[, ratio_roulette := mean_class_triplet_roulette_gw / denom_roulette, by=phast_class]
 dat_withCpG[, ratio_carlson := mean_class_triplet_carlson_gw / denom_carlson, by=phast_class]
 dat_withCpG[, ratio_gnomad := mean_class_triplet_gnomad_gw / denom_carlson, by=phast_class]
+dat_withCpG[, ratio_roulette_se := se_gw_roulette / denom_roulette]
+dat_withCpG[, ratio_carlson_se := se_gw_carlson / denom_carlson]
+dat_withCpG[, ratio_gnomad_se := se_gw_gnomad / denom_gnomad]
 dat_withCpG[, CpG := T] 
-dat_withCpG <- dat_withCpG[phast_class < 15, .(phast_class, ratio_roulette, ratio_carlson, ratio_gnomad, CpG)]
+dat_withCpG <- dat_withCpG[phast_class < 15, .(phast_class, ratio_roulette, ratio_carlson, ratio_gnomad,
+                                                 ratio_roulette_se, ratio_carlson_se, ratio_gnomad_se, CpG)]
 
 # filtering out CpG sites
 dat_nonCpG <- dplyr::select(dat, c(mean_class_triplet_roulette, mean_class_triplet_carlson, mean_class_triplet_gnomad,
+                                   se_class_roulette, se_class_gnomad, se_class_carlson,
                                    num_sites_roulette, num_sites_carlson, num_sites_gnomad, phast_class, triplet)) %>% 
   filter(., !triplet %in% CpGs) %>% setDT()
 
@@ -104,8 +127,25 @@ dat_nonCpG[, mean_class_triplet_roulette_gw := sum(mean_class_triplet_roulette *
 dat_nonCpG[, mean_class_triplet_carlson_gw := sum(mean_class_triplet_carlson * num_sites_carlson, na.rm=T) / sum(num_sites_carlson, na.rm = TRUE), by=.(phast_class)]
 dat_nonCpG[, mean_class_triplet_gnomad_gw := sum(mean_class_triplet_gnomad * num_sites_gnomad, na.rm=T) / sum(num_sites_gnomad, na.rm = TRUE), by=.(phast_class)]
 
+# SEs across chromosomes
+gw_se_roulette <- dat_nonCpG[, { m <- dat_nonCpG[phast_class == .BY$phast_class, mean_class_triplet_roulette_gw]
+v <- sum(num_sites_roulette * (se_class_roulette^2 + (mean_class_triplet_roulette_gw - m)^2)) / sum(num_sites_roulette) 
+.(se_gw_roulette = sqrt(v)) }, by = phast_class]
+
+gw_se_carlson <- dat_nonCpG[, { m <- dat_nonCpG[phast_class == .BY$phast_class, mean_class_triplet_carlson_gw]
+v <- sum(num_sites_carlson * (se_class_carlson^2 + (mean_class_triplet_carlson_gw - m)^2)) / sum(num_sites_carlson) 
+.(se_gw_carlson = sqrt(v)) }, by = phast_class]
+
+gw_se_gnomad <- dat_nonCpG[, { m <- dat_nonCpG[phast_class == .BY$phast_class, mean_class_triplet_gnomad_gw]
+v <- sum(num_sites_gnomad * (se_class_gnomad^2 + (mean_class_triplet_gnomad_gw - m)^2)) / sum(num_sites_gnomad) 
+.(se_gw_gnomad = sqrt(v)) }, by = phast_class]
+
 dat_nonCpG <- unique(dat_nonCpG, by=c("phast_class")) %>% 
   dplyr::select(., c(phast_class, mean_class_triplet_roulette_gw, mean_class_triplet_carlson_gw, mean_class_triplet_gnomad_gw)) %>% setDT()
+
+dat_nonCpG <- merge(dat_nonCpG, gw_se_roulette, by="phast_class")
+dat_nonCpG <- merge(dat_nonCpG, gw_se_carlson, by="phast_class")
+dat_nonCpG <- merge(dat_nonCpG, gw_se_gnomad, by="phast_class")
 
 denom_roulette <- dat_nonCpG[phast_class==15, mean_class_triplet_roulette_gw]
 denom_carlson <- dat_nonCpG[phast_class==15, mean_class_triplet_carlson_gw]
@@ -114,11 +154,34 @@ denom_gnomad <- dat_nonCpG[phast_class==15, mean_class_triplet_gnomad_gw]
 dat_nonCpG[, ratio_roulette := mean_class_triplet_roulette_gw / denom_roulette, by=phast_class]
 dat_nonCpG[, ratio_carlson := mean_class_triplet_carlson_gw / denom_carlson, by=phast_class]
 dat_nonCpG[, ratio_gnomad := mean_class_triplet_gnomad_gw / denom_carlson, by=phast_class]
-dat_nonCpG[, CpG := F] 
-dat_nonCpG <- dat_nonCpG[phast_class < 15, .(phast_class, ratio_roulette, ratio_carlson, ratio_gnomad, CpG)]
+dat_nonCpG[, ratio_roulette_se := se_gw_roulette / denom_roulette]
+dat_nonCpG[, ratio_carlson_se := se_gw_carlson / denom_carlson]
+dat_nonCpG[, ratio_gnomad_se := se_gw_gnomad / denom_gnomad]
 
-m_ratios <- pivot_longer(rbind.data.frame(dat_withCpG, dat_nonCpG), cols=starts_with("ratio"), values_to="ratio", names_to="map") %>% setDT()
+dat_nonCpG[, CpG := F] 
+dat_nonCpG <- dat_nonCpG[phast_class < 15, .(phast_class, ratio_roulette, ratio_carlson, ratio_gnomad,
+                                             ratio_roulette_se, ratio_carlson_se, ratio_gnomad_se, CpG)]
+
+m_means <- pivot_longer(
+  rbind.data.frame(dat_withCpG, dat_nonCpG),
+  cols = c(ratio_roulette, ratio_carlson, ratio_gnomad),
+  names_to = "map",
+  values_to = "ratio"
+) %>% setDT()
+
+m_ses <- pivot_longer(
+  rbind.data.frame(dat_withCpG, dat_nonCpG),
+  cols = c(ratio_roulette_se, ratio_carlson_se, ratio_gnomad_se),
+  names_to = "map",
+  values_to = "se"
+) %>% setDT()
+
+m_ses[, map := sub("_se$", "", map)] 
+
+m_ratios <- m_means[m_ses, on = c("phast_class", "CpG", "map")]
+
 m_ratios[, annotation := "phastCons"]
+m_ratios <- m_ratios[, .(phast_class, CpG, map, ratio, se, annotation)]
 fwrite(m_ratios, "gw_ratios_phastCons.csv")
 
 # "Ratios of mutation rates within phast elements w.r.t. genome-wide background"

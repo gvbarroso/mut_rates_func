@@ -140,7 +140,7 @@ for(i in seq_along(tbl_chr)) {
 }
 
 # NOTE since we are joining B-values (see ggplot p3 in plot_functional.R) 
-# it makes sense to compute rations within each 1 kb bin, then summarize them later
+# it makes sense to compute ratios within each 1 kb bin, then summarize them later
 cat("done.\nComputing ratios...")
 elems <- c(paste0("decile_", 1:11), "enhancer", "promoter")
 
@@ -232,7 +232,7 @@ for(i in seq_along(functional)) {
 }
 
 # NOTE since we are joining B-values (see ggplot p3 in plot_functional.R) 
-# it makes sense to compute rations within each 1 kb bin, then summarize them later
+# it makes sense to compute ratios within each 1 kb bin, then summarize them later
 cat("done.\nComputing ratios...")
 elems <- c(paste0("decile_", 1:11), "enhancer", "promoter")
 

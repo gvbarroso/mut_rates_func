@@ -55,7 +55,7 @@ p1 <- ggplot(m_ratios, aes(x=xfac, y=ratio, color=as.factor(benegas_class), shap
   scale_shape_manual(values=c(16, 17), guide="none") +
   geom_hline(yintercept=1, linetype="dashed", color="grey") +
   scale_color_viridis_d(option="C", direction=1, name="Benegas class", breaks=1:12) +
-  labs(x=NULL, y=expression(paste(mu, " ratio")), title=NULL) +
+  labs(x=NULL, y=expression(paste(mu["÷"])), title=NULL) +
   scale_x_discrete(breaks=levels(m_ratios$xfac)[c(6.5, 18.5)], labels = c("FALSE", "TRUE")) +
   guides(color=guide_legend(nrow=1)) +
   theme(axis.title=element_text(size=18),
@@ -108,7 +108,7 @@ p2 <- ggplot(m_ratios, aes(x=xfac, y=ratio, color=as.factor(benegas_class), shap
   scale_shape_manual(values=c(16, 17), guide="none") +
   geom_hline(yintercept=1, linetype="dashed", color="grey") +
   scale_color_viridis_d(option="C", direction=1, name="Benegas class", breaks=1:12) +
-  labs(x="Overlap", y=expression(paste(mu, " ratio")), title=NULL) +
+  labs(x="Overlap", y=expression(paste(mu["÷"])), title=NULL) +
   scale_x_discrete(breaks=levels(m_ratios$xfac)[c(6.5, 18.5)], labels = c("FALSE", "TRUE")) +
   guides(color=guide_legend(nrow=1)) +
   theme(axis.title=element_text(size=18),
@@ -120,4 +120,4 @@ p2 <- ggplot(m_ratios, aes(x=xfac, y=ratio, color=as.factor(benegas_class), shap
         legend.direction="horizontal")
 
 p <- plot_grid(p1, p2, ncol=1, align="v", labels="AUTO")
-save_plot("plots/benegas_ov.pdf", p, base_height=8, base_width=12)
+save_plot("plots/benegas_ov.pdf", p, base_height=7, base_width=12)

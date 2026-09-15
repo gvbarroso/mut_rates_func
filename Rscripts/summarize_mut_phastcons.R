@@ -117,7 +117,7 @@ for(i in seq_along(tbl_chr)) {
 }
 
 # NOTE since we are joining B-values (see ggplot p3 in plot_phastcons.R) 
-# it makes sense to compute rations within each 1 kb bin, then summarize them later
+# it makes sense to compute ratios within each 1 kb bin, then summarize them later
 cat("done.\nComputing ratios...")
 
 # class 15 is putatively neutral
@@ -208,7 +208,7 @@ for(i in seq_along(tbl_chr)) {
 }
 
 # NOTE since we are joining B-values (see ggplot p3 in plot_phastcons.R) 
-# it makes sense to compute rations within each 1 kb bin, then summarize them later
+# it makes sense to compute ratios within each 1 kb bin, then summarize them later
 cat("done.\nComputing ratios...")
 
 # class 15 is putatively neutral
