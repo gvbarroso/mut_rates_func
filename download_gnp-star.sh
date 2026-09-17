@@ -1,10 +1,20 @@
-mkdir -p gpn-star-scores/{V,M,P}
+#!/bin/bash
 
-aria2c -c -x 16 -s 16 -d gpn-star-scores/V \
-  https://huggingface.co/datasets/songlab/gpn-star-scores/resolve/main/data/gpn-star-hg38-v100-200m/llr/llr_chr{1..22}.parquet
+cd /media/gvbarroso/extradrive1/gpn-star-scores
 
-aria2c -c -x 16 -s 16 -d gpn-star-scores/M \
-  https://huggingface.co/datasets/songlab/gpn-star-scores/resolve/main/data/gpn-star-hg38-m447-200m/llr/llr_chr{1..22}.parquet
+pip install -U huggingface_hub
 
-aria2c -c -x 16 -s 16 -d gpn-star-scores/P \
-  https://huggingface.co/datasets/songlab/gpn-star-scores/resolve/main/data/gpn-star-hg38-p243-200m/llr/llr_chr{1..22}.parquet 
+hf download songlab/gpn-star-scores \
+  --repo-type dataset \
+  --include "data/gpn-star-hg38-m447-200m/llr/*" \
+  --local-dir gpn-star-scores
+
+hf download songlab/gpn-star-scores \
+  --repo-type dataset \
+  --include "data/gpn-star-hg38-v100-200m/llr/*" \
+  --local-dir gpn-star-scores
+
+hf download songlab/gpn-star-scores \
+  --repo-type dataset \
+  --include "data/gpn-star-hg38-p243-200m/llr/*" \
+  --local-dir gpn-star-scores
