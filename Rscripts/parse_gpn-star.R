@@ -1,3 +1,10 @@
+#################
+#
+# This script reads raw GPN-star parquet files
+# and outputs simplified tsv files that fit with the rest of the pipeline
+#
+#################
+
 library(arrow)
 library(data.table)
 
@@ -19,7 +26,7 @@ chr <- sub("llr_(chr[^.]+)\\.parquet", "\\1", basename(f))
 out <- sprintf("tsv/gpn-star-M.%s.tsv.gz", chr)
 
 first <- TRUE
-
+b <- 1
 repeat {
   batch <- reader$read_next_batch()
   if(is.null(batch)) break
@@ -30,6 +37,7 @@ repeat {
   fwrite(x, out, sep="\t", col.names=first, append=!first)
   
   first <- FALSE
+  b <- b + 1
+  cat(paste("Processed batch:", b, "\n"))
 }
 
-cat("Wrote:", out, "\n")

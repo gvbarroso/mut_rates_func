@@ -1,3 +1,9 @@
+#################
+#
+# This script reads tsv files with GPN-MSA or GPN-Star scores
+# and outputs files with average scores per POS, in chunks
+#
+#################
 
 library(data.table)
 library(tidyverse)
@@ -9,8 +15,8 @@ args <- commandArgs(trailingOnly=TRUE)
 file_name <- args[1]
 total_lines <- R.utils::countLines(file_name)
 
-chunk_size <- 3e6 # must be a multiple of 3
-stopifnot(chunk_size %% 3 == 0)
+chunk_size <- 3e6 
+stopifnot(chunk_size %% 3 == 0) # 3 scores per POS (1 per ALT allele)
 skip <- 0
 finished <- FALSE
 

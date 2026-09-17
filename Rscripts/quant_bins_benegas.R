@@ -1,6 +1,6 @@
 #################
 #
-# This script reads processed benegas scores 
+# This script reads processed benegas scores (parse_benegas.R)
 # and defines the quantile bins per chr mimicking the phastCons classification
 #
 #################
