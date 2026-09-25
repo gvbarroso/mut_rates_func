@@ -9,9 +9,7 @@ library(data.table)
 library(tidyverse)
 
 args <- commandArgs(trailingOnly=TRUE)
-# originally downloaded from (27/05/2026)
-# https://huggingface.co/datasets/songlab/gpn-msa-hg38-scores
-# and split by chromosome with tabix
+# chr-specific TSV with "chrom", "pos", "ref", "alt", "score" (3 rows per pos)
 file_name <- args[1]
 total_lines <- R.utils::countLines(file_name)
 

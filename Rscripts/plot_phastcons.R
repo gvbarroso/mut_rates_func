@@ -286,6 +286,32 @@ nonCpG_files <- summary_files_1kb[grepl("nonCpG", summary_files_1kb)]
 withCpG <- data.table::rbindlist(lapply(withCpG_files, fread), fill=T, use.names=T)
 nonCpG <- data.table::rbindlist(lapply(nonCpG_files, fread), fill=T, use.names=T)
 
+# brief pause to look at length distributions of these isolated elements
+tbl <- withCpG[!duplicated(pos),] %>%
+  dplyr::select(., starts_with("n_sites_class")) %>% 
+  pivot_longer(., cols=starts_with("n_sites_class"), values_to="lengths", names_to="class") %>%
+  dplyr::filter(., lengths > 0, class != "n_sites_class_15") %>% setDT()
+
+tbl[, class := as.integer(sub(".*_", "", class))]
+counts <- as.data.frame(table(tbl$class))
+names(counts) <- c("class", "# windows (1e3)")
+counts$class <- as.integer(counts$class)
+counts$`# windows (1e3)` <- counts$`# windows (1e3)` / 1e3
+tbl <- merge(tbl, counts, by="class")
+
+p <- ggplot(tbl, aes(x=class, y=lengths, group=class, color=`# windows (1e3)`)) +
+  geom_boxplot() + theme_classic() + 
+  scale_x_continuous(breaks=1:12) +
+  labs(x="Constraint class", y="Length within 1kb windows", title=NULL) +
+  theme(axis.title=element_text(size=18),
+        axis.text=element_text(size=14),
+        strip.text=element_text(size=16),
+        legend.text=element_text(size=16),
+        legend.title=element_text(size=16),
+        legend.position="bottom")
+save_plot("plots/phast_lengths_1kb.pdf", p, base_height=5, base_width=9)
+# done with lengths, back to the main task
+
 withCpG[, hasCpG := T]
 nonCpG[, hasCpG := F]
 dat <- rbind.data.frame(withCpG, nonCpG)
@@ -294,7 +320,7 @@ dat <- rbind.data.frame(withCpG, nonCpG)
 # using median as a summary to mitigate outliers
 tbl_med_ratios <- dat[, .(med_ratio=median(value, na.rm=T), 
                           se_ratio=sd(value, na.rm=T) / sqrt(sum(!is.na(value)))),
-                         by=.(phast_group, map, hasCpG)]
+                          by=.(phast_group, map, hasCpG)]
 
 b_group <- dat[, .(mean_B=mean(B)), by=.(phast_group)] # joining mean B-value
 tbl <- tbl_med_ratios[b_group, on=.(phast_group)]

@@ -2,6 +2,7 @@
 #
 # This script reads raw GPN-star parquet files
 # and outputs simplified tsv files that fit with the rest of the pipeline
+# (it precedes parse_benegas.R)
 #
 #################
 
@@ -19,7 +20,7 @@ f <- args[1]
 
 ds <- open_dataset(f, format="parquet")
 
-scanner <- Scanner$create(ds, columns=c("chrom", "pos", "ref", "alt", "llr_calibrated"), batch_size=100000)
+scanner <- Scanner$create(ds, columns=c("chrom", "pos", "ref", "alt", "llr_calibrated"), batch_size=3000000)
 reader <- scanner$ToRecordBatchReader()
 
 chr <- sub("llr_(chr[^.]+)\\.parquet", "\\1", basename(f))
@@ -37,7 +38,7 @@ repeat {
   fwrite(x, out, sep="\t", col.names=first, append=!first)
   
   first <- FALSE
-  b <- b + 1
   cat(paste("Processed batch:", b, "\n"))
+  b <- b + 1
 }
 

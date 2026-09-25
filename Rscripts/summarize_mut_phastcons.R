@@ -18,6 +18,7 @@ chr <- args[1]
 
 cat(paste0("Reading mutation maps for chr ", chr, "..."))
 mut_files <- list.files("/../../media/gvbarroso/extradrive1/mut_rates_func/split_muts/", pattern=paste0("^mut_map_chr", chr, "_"), full.names=T)
+mut_files <- list.files("chr22_muts/", pattern=paste0("^mut_map_chr22_"), full.names=T)
 mut_map <- data.table::rbindlist(lapply(mut_files, fread))
 
 # NOTE: unlike Benegas scores (which are per site), phastCons are given in BED intervals
@@ -42,7 +43,7 @@ chr_range <- phast[,.(start=1, end=max(chromEnd)), by=chrom][, .(pos=seq(start, 
 # rolling BED intervals to single-nucleotide positions to join mutation rates
 phast <- phast[, .(pos=seq(chromStart, chromEnd)), by=.(chrom, phast_class, chromStart, chromEnd)][, c("chromStart", "chromEnd") := NULL]
 phast <- phast[chr_range, on=.(chrom, pos)]
-phast[is.na(phast_class), phast_class := 15L]
+phast[is.na(phast_class), phast_class := 15L] # class 15 -> putatively neutral sites
 
 cat("done.\nJoining maps...")
 phast <- mut_map[phast, on=.(chrom, pos), nomatch=0] 
@@ -68,10 +69,10 @@ phast[, se_class_triplet_roulette := sd(roulette, na.rm=T) / sqrt(.N), by=.(phas
 phast[, se_class_triplet_carlson := sd(carlson, na.rm=T) / sqrt(.N), by=.(phast_class, triplet)]
 phast[, se_class_triplet_gnomad := sd(gnomad, na.rm=T) / sqrt(.N), by=.(phast_class, triplet)]
 
-# storing number of sites per class per triplet (used to compute the means for focal chr)
+# storing number of sites per class per triplet (used to compute the means for each chr)
 phast[, `:=`(num_sites_roulette=sum(!is.na(roulette)),
-                  num_sites_carlson=sum(!is.na(carlson)),
-                  num_sites_gnomad=sum(!is.na(gnomad))),
+             num_sites_carlson=sum(!is.na(carlson)),
+             num_sites_gnomad=sum(!is.na(gnomad))),
            by=.(phast_class, triplet)]
 
 unique_vals <- unique(phast, by=c("phast_class", "triplet"))
