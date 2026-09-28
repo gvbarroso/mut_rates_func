@@ -85,7 +85,7 @@ wide <- dcast(tbl_means, bin_1kb ~ benegas_class, value.var = c("mean_roulette",
 wide[, chrom := as.integer(chr)]
 
 cat("Reading B-map...")
-b_chr <- fread(paste0("../B_1kb_roulette/B_map_YRI_chr", chr, "_1kb.csv.gz"))
+b_chr <- fread(paste0("~/Devel/bgs_lmr/models/B_maps_1kb/equilibrium_granular_Ne/split_cds_phastcons/roulette/B_map_YRI_chr", chr, "_1kb.csv.gz"))
 b_chr[, bin_1kb := pos %/% 1e3] # for joining
 
 cat("done.\nJoining and sanitizing...")
@@ -176,7 +176,7 @@ wide <- dcast(tbl_means, bin_1kb ~ benegas_class, value.var = c("mean_roulette",
 wide[, chrom := as.integer(chr)]
 
 cat("done.\nReading B-map...")
-b_chr <- fread(paste0("../B_1kb_roulette/B_map_YRI_chr", chr, "_1kb.csv.gz"))
+b_chr <- fread(paste0("~/Devel/bgs_lmr/models/B_maps_1kb/equilibrium_granular_Ne/split_cds_phastcons/roulette/B_map_YRI_chr", chr, "_1kb.csv.gz"))
 b_chr[, bin_1kb := pos %/% 1e3] # for joining
 
 cat("done.\nJoining and sanitizing...")
