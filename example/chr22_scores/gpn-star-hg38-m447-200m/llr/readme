@@ -1,0 +1,4 @@
+# download this file
+llr_chr22.parquet
+
+# adapting the paths in download_gpn-star.sh

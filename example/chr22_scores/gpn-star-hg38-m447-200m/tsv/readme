@@ -1,0 +1,4 @@
+# after downloading the parquet file for chromosome 22, obtain the file
+gpn-star-M.chr22.tsv.gz
+
+# using process_gpn-star.R
