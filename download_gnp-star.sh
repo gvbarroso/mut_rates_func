@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cd /media/gvbarroso/extradrive1/gpn-star-scores
+cd /media/gvbarroso/extradrive11/gpn-star-scores
 
 pip install -U huggingface_hub
 
