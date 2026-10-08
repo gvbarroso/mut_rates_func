@@ -108,7 +108,7 @@ p2 <- ggplot(m_ratios, aes(x=xfac, y=ratio, color=as.factor(benegas_class), shap
   geom_hline(yintercept=1, linetype="dashed", color="grey") +
   scale_color_viridis_d(option="C", direction=1, name="GPN-MSA class", breaks=1:12) +
   labs(x="Overlap", y=expression(paste(mu["÷"])), title=NULL) +
-  scale_x_discrete(breaks=levels(m_ratios$xfac)[c(6.5, 18.5)], labels = c("FALSE", "TRUE")) +
+  scale_x_discrete(breaks=levels(m_ratios$xfac)[c(6.5, 18.5)], labels = c("Non-overlapping", "Overlapping")) +
   guides(color=guide_legend(nrow=1)) +
   theme(axis.title=element_text(size=18),
         axis.text=element_text(size=14),

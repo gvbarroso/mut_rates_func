@@ -12,11 +12,11 @@ library(scales)
 library(cowplot)
 library(ggnewscale)
 
-setwd("~/Devel/mut_rates_func/functional/")
-
+setwd("functional")
+set
 CpGs <- c("ACG", "CCG", "GCG", "TCG", "CGA", "CGC", "CGG", "CGT")
 
-gw_summary_files <- list.files("~/Devel/mut_rates_func/functional/summary_tbls/", pattern=paste0("^summaries_chr"), full.names=T)
+gw_summary_files <- list.files("summary_tbls/", pattern=paste0("^summaries_chr"), full.names=T)
 dat <- data.table::rbindlist(lapply(gw_summary_files, fread))
 
 nclasses <- length(unique(na.omit(dat$functional_class))) - 1 # exclude last class (putatively neutral sites)
@@ -47,7 +47,7 @@ p0 <- dat[!duplicated(triplet),] %>% pivot_longer(., cols=ends_with("_triplets")
         legend.box="horizontal")
 save_plot("plots/rates_triplets.pdf", p0, base_height=4, base_width=12)
 
-stacked_files <- list.files("~/Devel/mut_rates_func/functional/summary_tbls/", pattern=paste0("^stacks_functional_chr"), full.names=T)
+stacked_files <- list.files("summary_tbls/", pattern=paste0("^stacks_functional_chr"), full.names=T)
 plot_df <- data.table::rbindlist(lapply(stacked_files, fread))
 plot_df[, prop := N / sum(N), by=functional_class]
 plot_df[, functional_class := factor(functional_class, levels=sort(unique(functional_class)))]
@@ -230,8 +230,8 @@ ratios_functional <- merge(nums, denoms, by=c("triplet", "chrom"), all.x=TRUE)
 setorder(ratios_functional, chrom, triplet, functional_class)
 
 ratios_functional[, `:=`(ratio_roulette=num_roulette / den_roulette,
-                      ratio_carlson=num_carlson / den_carlson,
-                      ratio_gnomad=num_gnomad / den_gnomad)]
+                         ratio_carlson=num_carlson / den_carlson,
+                         ratio_gnomad=num_gnomad / den_gnomad)]
 
 ratios_functional[, c("num_roulette", "num_carlson", "num_gnomad", "den_roulette", "den_carlson", "den_gnomad") := NULL]
 ratios_functional_m <- pivot_longer(ratios_functional, cols=starts_with("ratio_"), names_to="map", values_to="ratio") %>% setDT()
@@ -294,7 +294,7 @@ save_plot("plots/ratios_functional_triplet_bins.pdf", p2, base_height=8, base_wi
 #
 ####################
 
-summary_files_1kb <- list.files("~/Devel/mut_rates_func/functional/summary_tbls/", pattern=paste0("^exclusive_1kb_chr"), full.names=T)
+summary_files_1kb <- list.files("summary_tbls/", pattern=paste0("^exclusive_1kb_chr"), full.names=T)
 withCpG_files <- summary_files_1kb[!grepl("nonCpG", summary_files_1kb)]
 nonCpG_files <- summary_files_1kb[grepl("nonCpG", summary_files_1kb)]
 

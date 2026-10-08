@@ -2,8 +2,6 @@ library(data.table)
 library(tidyverse)
 library(cowplot)
 
-setwd("~/Devel/mut_rates_func/")
-
 ####################
 #
 # genome-wide ratios
@@ -79,9 +77,9 @@ leg <- get_legend(p1c)
 
 p1c <- p1c + theme(legend.position="none")
 
-p1 <- plot_grid(plot_grid(plot_grid(p1a, p1b, p1c, nrow=1, labels="AUTO", label_size=22, label_y=1.02, rel_widths=c(1.2, 1, 1)), 
+p1 <- plot_grid(plot_grid(plot_grid(p1a, p1b, p1c, nrow=1, labels="AUTO", label_size=19, label_y=1.02, rel_widths=c(1.2, 1, 1)), 
                 leg, nrow=2, rel_heights=c(1, 0.05)))
-save_plot("gw_ratios.pdf", p1, base_height=6, base_width=15)
+save_plot("gw_ratios.pdf", p1, base_height=5, base_width=15)
 
 ####################
 #
@@ -277,10 +275,10 @@ p3a <- ggplot(func_1kb, aes(x=class, y=med_ratio, shape=hasCpG)) +
                linewidth=0.9, lineend="round", inherit.aes=FALSE) +
   geom_point(aes(color=mean_B), size=3) +
   geom_errorbar(aes(ymin=med_ratio - se_ratio, ymax=med_ratio + se_ratio, color=mean_B), width=0.2, linewidth=0.7) +
-  labs(x=NULL, y=expression(paste(mu["÷"])), title=NULL) +
+  labs(x=NULL, y=expression(paste(mu["÷"], " (CDS + regulatory)")), title=NULL) +
   scale_shape_manual(name=NULL, values=c("FALSE"=16, "TRUE"=17),
                      labels=c("TRUE"="With CpG", "FALSE"="Without CpG"), guide="none") +
-  scale_y_continuous(breaks=pretty_breaks(), limits=c(min(func_1kb$med_ratio) - func_1kb$se_ratio[which.min(func_1kb$med_ratio)],
+  scale_y_continuous(breaks=c(0.9, 1.0, 1.1, 1.2), limits=c(min(func_1kb$med_ratio) - func_1kb$se_ratio[which.min(func_1kb$med_ratio)],
                                                       max(func_1kb$med_ratio) + func_1kb$se_ratio[which.max(func_1kb$med_ratio)])) +
   scale_color_viridis_c(option="C", direction=1, name="B-value", breaks=c(round(min(func_1kb$mean_B) + 0.01, 2), round(max(func_1kb$mean_B) - 0.01, 2))) +
   theme(strip.text=element_text(size=16),
@@ -300,11 +298,11 @@ p3b <- ggplot(benegas_1kb, aes(x=class, y=med_ratio, shape=hasCpG)) +
                linewidth=0.9, lineend="round", inherit.aes=FALSE) +
   geom_point(aes(color=mean_B), size=3) +
   geom_errorbar(aes(ymin=med_ratio - se_ratio, ymax=med_ratio + se_ratio, color=mean_B), width=0.2, linewidth=0.7) +
-  labs(x=NULL, y=expression(paste(mu["÷"])), title=NULL) +
+  labs(x=NULL, y=expression(paste(mu["÷"], " (GPN-MSA)")), title=NULL) +
   scale_shape_manual(name=NULL, values=c("FALSE"=16, "TRUE"=17),
                      labels=c("TRUE"="With CpG", "FALSE"="Without CpG"), guide="none") +
   scale_y_continuous(breaks=pretty_breaks(), limits=c(min(benegas_1kb$med_ratio) - benegas_1kb$se_ratio[which.min(benegas_1kb$med_ratio)],
-                                                      max(benegas_1kb$med_ratio) + benegas_1kb$se_ratio[which.min(benegas_1kb$med_ratio)])) +
+                                                      max(benegas_1kb$med_ratio) + benegas_1kb$se_ratio[which.max(benegas_1kb$med_ratio)])) +
   scale_color_viridis_c(option="C", direction=1, name="B-value", breaks=c(round(min(benegas_1kb$mean_B) + 0.01, 2), round(max(benegas_1kb$mean_B) - 0.01, 2))) +
   theme(strip.text=element_text(size=16),
         axis.title=element_text(size=20),
@@ -323,11 +321,11 @@ p3c <- ggplot(phast_1kb, aes(x=class, y=med_ratio, shape=hasCpG)) +
                linewidth=0.9, lineend="round", inherit.aes=FALSE) +
   geom_point(aes(color=mean_B), size=3) +
   geom_errorbar(aes(ymin=med_ratio - se_ratio, ymax=med_ratio + se_ratio, color=mean_B), width=0.2, linewidth=0.7) +
-  labs(x="Constraint class", y=expression(paste(mu["÷"])), title=NULL) +
+  labs(x="Constraint class", y=expression(paste(mu["÷"], " (phastCons)")), title=NULL) +
   scale_shape_manual(name=NULL, values=c("FALSE"=16, "TRUE"=17),
                      labels=c("TRUE"="With CpG", "FALSE"="Without CpG")) +
   scale_y_continuous(breaks=pretty_breaks(), limits=c(min(seg_phast$med_ratio) - seg_phast$se_ratio[which.min(seg_phast$med_ratio)],
-                                                      max(seg_phast$med_ratio) + seg_phast$se_ratio[which.min(seg_phast$med_ratio)])) +
+                                                      max(seg_phast$med_ratio) + seg_phast$se_ratio[which.max(seg_phast$med_ratio)])) +
   scale_color_viridis_c(option="C", direction=1, name="B-value", 
                         breaks=c(round(min(seg_phast$mean_B) + 0.01, 2), round(max(seg_phast$mean_B) - 0.01, 2))) +
   theme(strip.text=element_text(size=16),
@@ -361,3 +359,4 @@ p3c2 <- ggdraw() +
 
 p3 <- plot_grid(p3a, p3b, p3c2, g_shape, labels=c("A", "B", "C"), label_size=16, ncol=1, rel_heights=c(1, 1, 1, 0.075))
 save_plot("ratios_isolated_1kb.pdf", p3, base_height=11, base_width=12)
+
